@@ -55,7 +55,7 @@ const App: React.FC = () => {
   const { active: activeModes, update: setModes } = useModes();
   const { status: policy, toggle: togglePolicy } = usePolicy();
   const { events } = useAuditLog();
-  const { prefs } = usePreferences();
+  const { prefs, save } = usePreferences();
   const [assistantOpen, setAssistantOpen] = React.useState<boolean>(() => {
     try { return localStorage.getItem('rainvibe.ui.assistantOpen') !== 'false'; } catch { return true; }
   });
@@ -151,6 +151,12 @@ const App: React.FC = () => {
     }});
     registry.register({ id: 'save-buffer', title: 'Save Buffer', run: () => { save(activeId); try { (window as any).rainvibe?.appendAudit?.(JSON.stringify({ kind:'save', path: active?.path, ts: Date.now() })+'\n'); } catch {} } });
     registry.register({ id: 'open-shortcuts', title: 'Open Shortcuts', run: () => setShortcutsOpen(true) });
+    registry.register({ id: 'toggle-minimap', title: 'Toggle Minimap', run: () => {
+      try { save({ ...prefs, minimap: !prefs.minimap }); } catch {}
+    }});
+    registry.register({ id: 'toggle-ghost-text', title: 'Toggle Ghost Text', run: () => {
+      try { save({ ...prefs, ghostText: !prefs.ghostText }); } catch {}
+    }});
     registry.register({ id: 'open-file', title: 'Open File…', run: () => {
       const path = prompt('Enter relative path to open:');
       if (path) open(path);
@@ -244,6 +250,7 @@ const App: React.FC = () => {
                   const b64 = btoa(String.fromCharCode(...Array.from(bin)));
                   (window as any).rainvibe?.writeBytesBase64?.(`.rainvibe/exports/audit-${ts}.pdf`, b64);
                 }
+                try { (window as any).rainvibe?.revealInOS?.('.rainvibe/exports'); } catch {}
               }
             }}
             onOpenPath={(p) => open(p)}
