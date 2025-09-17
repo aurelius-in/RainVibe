@@ -16,7 +16,8 @@
     "format": "echo 'format to be configured'",
     "test": "echo 'tests to be added' && exit 0",
     "clean": "git clean -xfd -e rain_vibe_logo.png -e README.md",
-    "package": "pnpm --filter @rainvibe/desktop package"
+    "package": "pnpm --filter @rainvibe/desktop package",
+    "report": "node scripts/feature-report.mjs"
   },
   "devDependencies": {
     "typescript": "^5.5.4"

@@ -1,0 +1,23 @@
+name: desktop-build
+on:
+  push:
+    branches: [ develop ]
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - run: corepack enable
+      - run: corepack prepare pnpm@latest --activate
+      - run: pnpm install --ignore-scripts
+      - run: pnpm --filter @rainvibe/desktop build
+      - run: pnpm --filter @rainvibe/desktop package
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-release
+          path: apps/desktop/release/**
+

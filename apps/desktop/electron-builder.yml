@@ -17,6 +17,10 @@ nsis:
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true
+  include: null
+  license: LICENSE
+extraResources: []
+afterSign: ./scripts/after-sign.js # placeholder
 extraMetadata:
   main: dist/main/electron/main.js
 
