@@ -11,6 +11,7 @@ declare global {
       gitStatus?: () => { status: string; path: string }[];
       appendAudit?: (line: string) => boolean;
       revealInOS?: (relPath: string) => boolean;
+      writeBytesBase64?: (relPath: string, base64: string) => boolean;
     };
   }
 }
