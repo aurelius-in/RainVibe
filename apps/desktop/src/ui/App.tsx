@@ -232,18 +232,17 @@ const App: React.FC = () => {
             audit={{
               events: events as any,
               onExport: (fmt) => {
+                const ts = new Date().toISOString().replace(/[:.]/g, '-');
                 if (fmt === 'html') {
                   const html = exportHTML(events as any);
-                  const url = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
-                  window.open(url);
+                  (window as any).rainvibe?.writeTextFile?.(`.rainvibe/exports/audit-${ts}.html`, html);
                 } else if (fmt === 'jsonl') {
                   const txt = exportJSONL(events as any);
-                  const url = URL.createObjectURL(new Blob([txt], { type: 'application/json' }));
-                  window.open(url);
+                  (window as any).rainvibe?.writeTextFile?.(`.rainvibe/exports/audit-${ts}.jsonl`, txt);
                 } else {
                   const bin = exportPDF(events as any);
-                  const url = URL.createObjectURL(new Blob([bin], { type: 'application/pdf' }));
-                  window.open(url);
+                  const b64 = btoa(String.fromCharCode(...Array.from(bin)));
+                  (window as any).rainvibe?.writeBytesBase64?.(`.rainvibe/exports/audit-${ts}.pdf`, b64);
                 }
               }
             }}

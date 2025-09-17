@@ -82,6 +82,19 @@ contextBridge.exposeInMainWorld('rainvibe', {
     }
   }
   ,
+  writeBytesBase64(relPath: string, base64: string): boolean {
+    try {
+      const abs = path.resolve(repoRoot(), relPath);
+      if (!abs.startsWith(repoRoot())) return false;
+      fs.mkdirSync(path.dirname(abs), { recursive: true });
+      const buf = Buffer.from(base64, 'base64');
+      fs.writeFileSync(abs, buf);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  ,
   gitStatus(): { status: string; path: string }[] {
     try {
       const root = repoRoot();
