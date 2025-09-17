@@ -124,6 +124,11 @@ const App: React.FC = () => {
       fetch('/scripts/feature-report.mjs').catch(() => {});
       alert('Run `pnpm report` to generate FEATURE_COVERAGE.md');
     }});
+    registry.register({ id: 'new-flow-item', title: 'Flows: Add Task', run: () => {
+      const title = prompt('Task title');
+      const input = document.getElementById('flows-new') as HTMLInputElement | null;
+      if (title && input) { input.value = title; const click = input.nextElementSibling as HTMLButtonElement | null; click?.click(); }
+    }});
   }, [setModes, togglePolicy]);
 
   React.useEffect(() => {
@@ -209,6 +214,7 @@ const App: React.FC = () => {
             onOpenPath={(p) => open(p)}
             policyEnabled={policy.enabled}
             onTogglePolicy={() => togglePolicy()}
+            navImports={(active?.content.match(/import\s+[^;]+;/g) || []).map(s => s.trim())}
           />
         </aside>
       </div>
