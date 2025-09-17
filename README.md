@@ -1,7 +1,11 @@
 <div align="center">
   <img src="rain_vibe_logo.png" alt="RainVibe logo" width="200" />
-  <p><strong>Monaco-based, AI-powered IDE with modular modes: Coach, Bug Fixer, Policy-Safe, Compliance/Audit, and Basic for fast builds.</strong></p>
 </div>
+---
+
+## In a nutshell 
+
+RainVibe is a Monaco-based IDE powered by ChatGPT, with modes tuned to real workflows: Coach for onboarding and upskilling, Bug Fixer for root-cause fixes, Policy-Safe for enforced guardrails, Compliance/Audit for traceable changes, and Basic for fast build tasks.
 
 ---
 
@@ -18,12 +22,6 @@ RainVibe fills the gaps that slow teams down or block adoption:
 - **Org-first provisioning.** Orgs can ship their policy pack and audit defaults before any code is written. Developers get a safe baseline with zero guesswork.
 
 RainVibe is a coding partner for real teams. It helps you ship fast. It also helps you ship safely.
-
----
-
-## In a nutshell 
-
-RainVibe is a Monaco-based IDE powered by ChatGPT, with modes tuned to real workflows: Coach for onboarding and upskilling, Bug Fixer for root-cause fixes, Policy-Safe for enforced guardrails, Compliance/Audit for traceable changes, and Basic for fast build tasks.
 
 ---
 
