@@ -20,8 +20,8 @@ const ActionBoard: React.FC<Props> = ({ open, commands, onClose }) => {
   if (!open) return null;
   const filtered = commands.filter(c => c.title.toLowerCase().includes(q.toLowerCase()));
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-start justify-center pt-24">
-      <div className="w-[640px] bg-black border border-white/15 rounded shadow-xl">
+    <div className="fixed inset-0 bg-black/60 flex items-start justify-center pt-24" onClick={onClose}>
+      <div className="w-[640px] bg-black border border-white/15 rounded shadow-xl" onClick={(e) => e.stopPropagation()}>
         <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Type an action..." className="w-full px-3 py-2 bg-black text-white outline-none border-b border-white/10" />
         <div className="max-h-80 overflow-auto">
           {filtered.map(c => (
