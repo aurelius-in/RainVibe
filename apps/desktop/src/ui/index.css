@@ -1,0 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  background: #000000;
+  color: #FFFFFF;
+}
+
+.gradient-accent {
+  background: linear-gradient(90deg, #00A2FF 0%, #00FF7F 100%);
+}
+

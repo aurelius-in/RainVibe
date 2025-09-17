@@ -1,0 +1,25 @@
+{
+  "name": "@rainvibe/monorepo",
+  "private": true,
+  "version": "0.1.0",
+  "description": "RainVibe monorepo (apps + packages)",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.17",
+    "pnpm": ">=9"
+  },
+  "scripts": {
+    "dev": "pnpm --recursive --parallel --filter @rainvibe/desktop dev",
+    "build": "pnpm --recursive --workspace-concurrency=1 build",
+    "typecheck": "pnpm --recursive typecheck",
+    "lint": "echo 'lint to be configured'",
+    "format": "echo 'format to be configured'",
+    "test": "echo 'tests to be added' && exit 0",
+    "clean": "git clean -xfd -e rain_vibe_logo.png -e README.md",
+    "package": "pnpm --filter @rainvibe/desktop package"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4"
+  }
+}
+
