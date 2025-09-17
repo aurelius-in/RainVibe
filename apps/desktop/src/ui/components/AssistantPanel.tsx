@@ -15,9 +15,10 @@ interface Props {
   policyEnabled?: boolean;
   onTogglePolicy?: () => void;
   navImports?: string[];
+  onClearDiagnostics?: () => void;
 }
 
-const AssistantPanel: React.FC<Props> = ({ open, audit, diagnostics, onOpenPath, policyEnabled, onTogglePolicy, navImports }) => {
+const AssistantPanel: React.FC<Props> = ({ open, audit, diagnostics, onOpenPath, policyEnabled, onTogglePolicy, navImports, onClearDiagnostics }) => {
   const [tab, setTab] = React.useState<Tab>('Chat');
   if (!open) return null;
   return (
@@ -76,7 +77,11 @@ const AssistantPanel: React.FC<Props> = ({ open, audit, diagnostics, onOpenPath,
         )}
         {tab === 'Run' && <RunConsole />}
         {tab === 'Diagnostics' && (
-          <div className="space-y-1">
+          <div className="space-y-2">
+            <div>
+              <button onClick={onClearDiagnostics} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10">Clear</button>
+            </div>
+            <div className="space-y-1">
             {(diagnostics ?? []).map((d, i) => (
               <div key={i} className="border border-white/10 rounded px-2 py-1">
                 <span className="opacity-70 mr-2">{d.severity}</span>
@@ -84,6 +89,7 @@ const AssistantPanel: React.FC<Props> = ({ open, audit, diagnostics, onOpenPath,
               </div>
             ))}
             {(diagnostics?.length ?? 0) === 0 && <div className="opacity-60">No diagnostics</div>}
+            </div>
           </div>
         )}
         {tab === 'Changes' && (

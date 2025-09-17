@@ -218,6 +218,7 @@ const App: React.FC = () => {
             policyEnabled={policy.enabled}
             onTogglePolicy={() => togglePolicy()}
             navImports={(active?.content.match(/import\s+[^;]+;/g) || []).map(s => s.trim())}
+            onClearDiagnostics={() => setDiagnostics([])}
           />
         </aside>
       </div>
