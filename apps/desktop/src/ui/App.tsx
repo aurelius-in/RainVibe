@@ -6,6 +6,9 @@ import { useModes } from './state/useModes';
 import AssistantPanel from './components/AssistantPanel';
 import ActionBoard from './components/ActionBoard';
 import PreferencesModal from './components/PreferencesModal';
+import { usePolicy } from './state/usePolicy';
+import { useAuditLog } from './state/useAuditLog';
+import { exportHTML, exportJSONL, exportPDF } from '@rainvibe/audit/src/exports';
 
 const TopBar: React.FC<{ modes: string[]; onChange: (m: string[]) => void; onOpenBoard: () => void; onToggleAssistant: () => void; }>
   = ({ modes, onChange, onOpenBoard, onToggleAssistant }) => {
@@ -25,13 +28,13 @@ const TopBar: React.FC<{ modes: string[]; onChange: (m: string[]) => void; onOpe
   );
 };
 
-const StatusBar: React.FC<{ modes: string[] }>= ({ modes }) => {
+const StatusBar: React.FC<{ modes: string[]; policyOn: boolean; auditCount: number }>= ({ modes, policyOn, auditCount }) => {
   return (
     <div className="h-6 text-xs px-3 flex items-center gap-4 border-t border-white/10 bg-black text-white/80">
       <span>model: ChatGPT</span>
       <span>mode: {modes.join(' + ') || '—'}</span>
-      <span>policy: off</span>
-      <span>audit: off</span>
+      <span>policy: {policyOn ? 'on' : 'off'}</span>
+      <span>audit: {auditCount}</span>
       <span>tokens: 0%</span>
     </div>
   );
@@ -44,6 +47,8 @@ const App: React.FC = () => {
   const [assistantOpen, setAssistantOpen] = React.useState(true);
   const [boardOpen, setBoardOpen] = React.useState(false);
   const [prefsOpen, setPrefsOpen] = React.useState(false);
+  const { status: policy, toggle: togglePolicy } = usePolicy();
+  const { events } = useAuditLog();
   return (
     <div className="h-full w-full flex flex-col bg-black text-white">
       <TopBar
@@ -67,16 +72,37 @@ const App: React.FC = () => {
           </div>
         </main>
         <aside className="border-l border-white/10 p-0">
-          <AssistantPanel open={assistantOpen} />
+          <AssistantPanel
+            open={assistantOpen}
+            audit={{
+              events: events as any,
+              onExport: (fmt) => {
+                if (fmt === 'html') {
+                  const html = exportHTML(events as any);
+                  const url = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
+                  window.open(url);
+                } else if (fmt === 'jsonl') {
+                  const txt = exportJSONL(events as any);
+                  const url = URL.createObjectURL(new Blob([txt], { type: 'application/json' }));
+                  window.open(url);
+                } else {
+                  const bin = exportPDF(events as any);
+                  const url = URL.createObjectURL(new Blob([bin], { type: 'application/pdf' }));
+                  window.open(url);
+                }
+              }
+            }}
+          />
         </aside>
       </div>
-      <StatusBar modes={activeModes as any} />
+      <StatusBar modes={activeModes as any} policyOn={policy.enabled} auditCount={events.length} />
       <ActionBoard
         open={boardOpen}
         onClose={() => setBoardOpen(false)}
         commands={[
           { id: 'toggle-assistant', title: 'Toggle Assistant Panel', run: () => setAssistantOpen(v => !v) },
           { id: 'mode-basic', title: 'Switch Mode: Basic', run: () => setModes(['Basic'] as any) },
+          { id: 'toggle-policy', title: 'Toggle Policy-Safe', run: () => togglePolicy() },
           { id: 'open-preferences', title: 'Open Preferences', run: () => setPrefsOpen(true) },
         ]}
       />

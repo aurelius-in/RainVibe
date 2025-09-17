@@ -1,14 +1,15 @@
 import React from 'react';
 
-type Tab = 'Chat' | 'Tasks' | 'Modes' | 'Trails';
+type Tab = 'Chat' | 'Tasks' | 'Modes' | 'Trails' | 'Run';
 
-const tabs: Tab[] = ['Chat', 'Tasks', 'Modes', 'Trails'];
+const tabs: Tab[] = ['Chat', 'Tasks', 'Modes', 'Trails', 'Run'];
 
 interface Props {
   open: boolean;
+  audit?: { events: Array<{ id: string; ts: number; kind: string }>; onExport: (fmt: 'html' | 'jsonl' | 'pdf') => void };
 }
 
-const AssistantPanel: React.FC<Props> = ({ open }) => {
+const AssistantPanel: React.FC<Props> = ({ open, audit }) => {
   const [tab, setTab] = React.useState<Tab>('Chat');
   if (!open) return null;
   return (
@@ -24,7 +25,22 @@ const AssistantPanel: React.FC<Props> = ({ open }) => {
         {tab === 'Chat' && <div>Chat coming soon.</div>}
         {tab === 'Tasks' && <div>Tasks and Flows coming soon.</div>}
         {tab === 'Modes' && <div>Toggle and configure Modes here.</div>}
-        {tab === 'Trails' && <div>Audit Trails will appear here.</div>}
+        {tab === 'Trails' && (
+          <div>
+            <div className="mb-2 flex gap-2">
+              <button onClick={() => audit?.onExport('html')} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10">Export HTML</button>
+              <button onClick={() => audit?.onExport('jsonl')} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10">Export JSONL</button>
+              <button onClick={() => audit?.onExport('pdf')} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10">Export PDF</button>
+            </div>
+            <div className="space-y-1">
+              {(audit?.events ?? []).map(e => (
+                <div key={e.id} className="border border-white/10 rounded px-2 py-1">{new Date(e.ts).toLocaleString()} — {e.kind}</div>
+              ))}
+              {(audit?.events?.length ?? 0) === 0 && <div>No audit events yet.</div>}
+            </div>
+          </div>
+        )}
+        {tab === 'Run' && <div>Run Console stub. Execution wiring will come later.</div>}
       </div>
     </div>
   );
