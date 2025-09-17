@@ -131,8 +131,24 @@ const App: React.FC = () => {
       try { await navigator.clipboard.writeText(active?.path || ''); } catch {}
     }});
     registry.register({ id: 'new-buffer', title: 'New Buffer', run: () => newBuffer() });
-    registry.register({ id: 'close-others', title: 'Close Other Tabs', run: () => { if (activeId) { const btns = document.querySelectorAll('div[role="tab"]'); /* placeholder */ } } });
-    registry.register({ id: 'close-all', title: 'Close All Tabs', run: () => { const btns = document.querySelectorAll('div[role="tab"]'); /* placeholder */ } });
+    registry.register({ id: 'close-others', title: 'Close Other Tabs', run: () => {
+      try {
+        const id = activeId;
+        const keep = buffers.find(b => b.id === id);
+        if (!keep) return;
+        localStorage.setItem('rainvibe.buffers', JSON.stringify([keep]));
+        localStorage.setItem('rainvibe.buffers.active', keep.id);
+        location.reload();
+      } catch {}
+    }});
+    registry.register({ id: 'close-all', title: 'Close All Tabs', run: () => {
+      try {
+        const welcome = { id: 'welcome', path: 'WELCOME.ts', language: 'typescript', content: '// RainVibe — dark-only, Monaco-based IDE\n' } as any;
+        localStorage.setItem('rainvibe.buffers', JSON.stringify([welcome]));
+        localStorage.setItem('rainvibe.buffers.active', 'welcome');
+        location.reload();
+      } catch {}
+    }});
     registry.register({ id: 'save-buffer', title: 'Save Buffer', run: () => { save(activeId); try { (window as any).rainvibe?.appendAudit?.(JSON.stringify({ kind:'save', path: active?.path, ts: Date.now() })+'\n'); } catch {} } });
     registry.register({ id: 'open-shortcuts', title: 'Open Shortcuts', run: () => setShortcutsOpen(true) });
     registry.register({ id: 'open-file', title: 'Open File…', run: () => {
