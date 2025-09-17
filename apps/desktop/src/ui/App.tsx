@@ -114,6 +114,8 @@ const App: React.FC = () => {
     registry.register({ id: 'left-rail-workspace', title: 'Show Workspace', run: () => setLeftRail('workspace') });
     registry.register({ id: 'left-rail-search', title: 'Show Search', run: () => setLeftRail('search') });
     registry.register({ id: 'new-buffer', title: 'New Buffer', run: () => newBuffer() });
+    registry.register({ id: 'close-others', title: 'Close Other Tabs', run: () => { if (activeId) { const btns = document.querySelectorAll('div[role="tab"]'); /* placeholder */ } } });
+    registry.register({ id: 'close-all', title: 'Close All Tabs', run: () => { const btns = document.querySelectorAll('div[role="tab"]'); /* placeholder */ } });
     registry.register({ id: 'save-buffer', title: 'Save Buffer', run: () => { save(activeId); try { (window as any).rainvibe?.appendAudit?.(JSON.stringify({ kind:'save', path: active?.path, ts: Date.now() })+'\n'); } catch {} } });
     registry.register({ id: 'open-shortcuts', title: 'Open Shortcuts', run: () => setShortcutsOpen(true) });
     registry.register({ id: 'open-file', title: 'Open File…', run: () => {
@@ -186,6 +188,7 @@ const App: React.FC = () => {
               onChange={(v) => update(active.id, v)}
               inlineAutocompleteEnabled={!!prefs.ghostText}
               diagnostics={diagnostics}
+              minimap={prefs.minimap}
             />
           </div>
         </main>

@@ -7,9 +7,10 @@ interface Props {
   onChange: (val: string) => void;
   inlineAutocompleteEnabled?: boolean;
   diagnostics?: Array<{ message: string; severity: 'error' | 'warning' | 'info'; startLine: number; startColumn: number; endLine: number; endColumn: number }>
+  minimap?: boolean;
 }
 
-const EditorHost: React.FC<Props> = ({ value, language, onChange, inlineAutocompleteEnabled, diagnostics }) => {
+const EditorHost: React.FC<Props> = ({ value, language, onChange, inlineAutocompleteEnabled, diagnostics, minimap }) => {
   const editorRef = React.useRef<any>(null);
   const monacoRef = React.useRef<any>(null);
 
@@ -63,7 +64,7 @@ const EditorHost: React.FC<Props> = ({ value, language, onChange, inlineAutocomp
         } as any);
       }}
       options={{
-        minimap: { enabled: true },
+        minimap: { enabled: minimap !== false },
         fontLigatures: true,
         fontFamily: 'Consolas, "JetBrains Mono", "Source Code Pro", monospace',
         renderWhitespace: 'none',
