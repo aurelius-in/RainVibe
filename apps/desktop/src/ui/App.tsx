@@ -250,6 +250,7 @@ const App: React.FC = () => {
                   const b64 = btoa(String.fromCharCode(...Array.from(bin)));
                   (window as any).rainvibe?.writeBytesBase64?.(`.rainvibe/exports/audit-${ts}.pdf`, b64);
                 }
+                try { (window as any).rainvibe?.revealInOS?.('.rainvibe/exports'); } catch {}
               }
             }}
             onOpenPath={(p) => open(p)}
