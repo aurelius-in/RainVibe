@@ -2,8 +2,13 @@ import React from 'react';
 import ModeToggle from './components/ModeToggle';
 import EditorHost from './editor/EditorHost';
 import { useBuffers } from './state/useBuffers';
+import { useModes } from './state/useModes';
+import AssistantPanel from './components/AssistantPanel';
+import ActionBoard from './components/ActionBoard';
+import PreferencesModal from './components/PreferencesModal';
 
-const TopBar: React.FC = () => {
+const TopBar: React.FC<{ modes: string[]; onChange: (m: string[]) => void; onOpenBoard: () => void; onToggleAssistant: () => void; }>
+  = ({ modes, onChange, onOpenBoard, onToggleAssistant }) => {
   return (
     <div className="flex items-center justify-between px-3 h-10 border-b border-white/10 bg-black text-white">
       <div className="flex items-center gap-2">
@@ -12,17 +17,19 @@ const TopBar: React.FC = () => {
       </div>
       <div className="flex items-center gap-2 text-sm">
         <span className="opacity-70">Modes:</span>
-        <ModeToggle active={['Basic']} onChange={() => {}} />
+        <ModeToggle active={modes as any} onChange={(m) => onChange(m as any)} />
+        <button onClick={onOpenBoard} className="ml-2 px-2 py-0.5 border border-white/15 rounded hover:bg-white/10">Action Board</button>
+        <button onClick={onToggleAssistant} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10">Toggle Panel</button>
       </div>
     </div>
   );
 };
 
-const StatusBar: React.FC = () => {
+const StatusBar: React.FC<{ modes: string[] }>= ({ modes }) => {
   return (
     <div className="h-6 text-xs px-3 flex items-center gap-4 border-t border-white/10 bg-black text-white/80">
       <span>model: ChatGPT</span>
-      <span>mode: Basic</span>
+      <span>mode: {modes.join(' + ') || '—'}</span>
       <span>policy: off</span>
       <span>audit: off</span>
       <span>tokens: 0%</span>
@@ -33,9 +40,18 @@ const StatusBar: React.FC = () => {
 const App: React.FC = () => {
   const { buffers, activeId, update } = useBuffers();
   const active = buffers.find(b => b.id === activeId) ?? buffers[0];
+  const { active: activeModes, update: setModes } = useModes();
+  const [assistantOpen, setAssistantOpen] = React.useState(true);
+  const [boardOpen, setBoardOpen] = React.useState(false);
+  const [prefsOpen, setPrefsOpen] = React.useState(false);
   return (
     <div className="h-full w-full flex flex-col bg-black text-white">
-      <TopBar />
+      <TopBar
+        modes={activeModes as any}
+        onChange={(m) => setModes(m as any)}
+        onOpenBoard={() => setBoardOpen(true)}
+        onToggleAssistant={() => setAssistantOpen(v => !v)}
+      />
       <div className="flex-1 grid grid-cols-[260px_minmax(0,1fr)_360px] grid-rows-[minmax(0,1fr)]">
         <aside className="border-r border-white/10 p-2">
           <div className="text-sm font-semibold mb-2">Workspace</div>
@@ -50,12 +66,21 @@ const App: React.FC = () => {
             />
           </div>
         </main>
-        <aside className="border-l border-white/10 p-2">
-          <div className="text-sm font-semibold mb-2">Assistant Panel</div>
-          <div className="text-xs opacity-70">Chat | Tasks | Modes | Trails</div>
+        <aside className="border-l border-white/10 p-0">
+          <AssistantPanel open={assistantOpen} />
         </aside>
       </div>
-      <StatusBar />
+      <StatusBar modes={activeModes as any} />
+      <ActionBoard
+        open={boardOpen}
+        onClose={() => setBoardOpen(false)}
+        commands={[
+          { id: 'toggle-assistant', title: 'Toggle Assistant Panel', run: () => setAssistantOpen(v => !v) },
+          { id: 'mode-basic', title: 'Switch Mode: Basic', run: () => setModes(['Basic'] as any) },
+          { id: 'open-preferences', title: 'Open Preferences', run: () => setPrefsOpen(true) },
+        ]}
+      />
+      <PreferencesModal open={prefsOpen} onClose={() => setPrefsOpen(false)} />
     </div>
   );
 };
