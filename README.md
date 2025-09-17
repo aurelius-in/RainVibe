@@ -21,7 +21,7 @@ RainVibe is a coding partner for real teams. It helps you ship fast. It also hel
 
 ---
 
-## One-sentence summary
+## In a nutshell 
 
 RainVibe is a Monaco-based IDE powered by ChatGPT, with modes tuned to real workflows: Coach for onboarding and upskilling, Bug Fixer for root-cause fixes, Policy-Safe for enforced guardrails, Compliance/Audit for traceable changes, and Basic for fast build tasks.
 
