@@ -1,6 +1,5 @@
 <div align="center">
   <img src="rain_vibe_logo.png" alt="RainVibe logo" width="200" />
-  <h1>RainVibe</h1>
   <p><strong>Monaco-based, AI-powered IDE with modular modes: Coach, Bug Fixer, Policy-Safe, Compliance/Audit, and Basic for fast builds.</strong></p>
 </div>
 
