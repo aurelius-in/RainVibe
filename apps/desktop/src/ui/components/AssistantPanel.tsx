@@ -2,9 +2,9 @@ import React from 'react';
 import ChatTab from './ChatTab';
 import RunConsole from './RunConsole';
 
-type Tab = 'Chat' | 'Tasks' | 'Modes' | 'Trails' | 'Run' | 'Diagnostics' | 'Changes' | 'Kits' | 'Guardrails';
+type Tab = 'Chat' | 'Tasks' | 'Modes' | 'Trails' | 'Run' | 'Diagnostics' | 'Changes' | 'Kits' | 'Guardrails' | 'Navigation';
 
-const tabs: Tab[] = ['Chat', 'Tasks', 'Modes', 'Trails', 'Run', 'Diagnostics', 'Changes', 'Kits', 'Guardrails'];
+const tabs: Tab[] = ['Chat', 'Tasks', 'Modes', 'Trails', 'Run', 'Diagnostics', 'Changes', 'Kits', 'Guardrails', 'Navigation'];
 
 interface Props {
   open: boolean;
@@ -13,9 +13,10 @@ interface Props {
   onOpenPath?: (path: string) => void;
   policyEnabled?: boolean;
   onTogglePolicy?: () => void;
+  navImports?: string[];
 }
 
-const AssistantPanel: React.FC<Props> = ({ open, audit, diagnostics, onOpenPath, policyEnabled, onTogglePolicy }) => {
+const AssistantPanel: React.FC<Props> = ({ open, audit, diagnostics, onOpenPath, policyEnabled, onTogglePolicy, navImports }) => {
   const [tab, setTab] = React.useState<Tab>('Chat');
   if (!open) return null;
   return (
@@ -80,6 +81,15 @@ const AssistantPanel: React.FC<Props> = ({ open, audit, diagnostics, onOpenPath,
           </div>
         )}
         {tab === 'Kits' && <div>Kits stub: installable add-ons will be shown here.</div>}
+        {tab === 'Navigation' && (
+          <div className="space-y-1">
+            <div className="opacity-70 text-xs mb-1">Imports in active file</div>
+            {(navImports ?? []).map((m, i) => (
+              <div key={i} className="border border-white/10 rounded px-2 py-1 text-xs">{m}</div>
+            ))}
+            {(navImports?.length ?? 0) === 0 && <div className="opacity-60 text-xs">No imports detected</div>}
+          </div>
+        )}
         {tab === 'Guardrails' && (
           <div className="space-y-2">
             <div className="flex items-center gap-2">

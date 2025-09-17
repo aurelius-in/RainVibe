@@ -209,6 +209,7 @@ const App: React.FC = () => {
             onOpenPath={(p) => open(p)}
             policyEnabled={policy.enabled}
             onTogglePolicy={() => togglePolicy()}
+            navImports={(active?.content.match(/import\s+[^;]+;/g) || []).map(s => s.trim())}
           />
         </aside>
       </div>
