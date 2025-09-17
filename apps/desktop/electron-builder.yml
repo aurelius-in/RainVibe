@@ -17,5 +17,5 @@ nsis:
   perMachine: false
   allowToChangeInstallationDirectory: true
 extraMetadata:
-  main: dist/main/index.cjs
+  main: dist/main/electron/main.js
 

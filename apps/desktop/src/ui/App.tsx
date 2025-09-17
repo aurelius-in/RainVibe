@@ -1,4 +1,6 @@
 import React from 'react';
+import ModeToggle from './components/ModeToggle';
+import EditorHost from './editor/EditorHost';
 
 const TopBar: React.FC = () => {
   return (
@@ -9,13 +11,7 @@ const TopBar: React.FC = () => {
       </div>
       <div className="flex items-center gap-2 text-sm">
         <span className="opacity-70">Modes:</span>
-        <div className="flex gap-1">
-          {['Basic', 'Coach', 'Bug Fixer', 'Policy-Safe', 'Compliance/Audit'].map((m) => (
-            <button key={m} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10">
-              {m}
-            </button>
-          ))}
-        </div>
+        <ModeToggle active={['Basic']} onChange={() => {}} />
       </div>
     </div>
   );
@@ -43,7 +39,9 @@ const App: React.FC = () => {
           <div className="text-xs opacity-70">Open a folder to begin.</div>
         </aside>
         <main className="p-0">
-          <div className="h-full w-full bg-black">{/* Monaco mounts here later */}</div>
+          <div className="h-full w-full bg-black">
+            <EditorHost value={""} language="typescript" onChange={() => {}} />
+          </div>
         </main>
         <aside className="border-l border-white/10 p-2">
           <div className="text-sm font-semibold mb-2">Assistant Panel</div>
