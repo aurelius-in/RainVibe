@@ -9,9 +9,10 @@ const tabs: Tab[] = ['Chat', 'Tasks', 'Modes', 'Trails', 'Run', 'Diagnostics', '
 interface Props {
   open: boolean;
   audit?: { events: Array<{ id: string; ts: number; kind: string }>; onExport: (fmt: 'html' | 'jsonl' | 'pdf') => void };
+  diagnostics?: Array<{ message: string; severity: 'error' | 'warning' | 'info' }>;
 }
 
-const AssistantPanel: React.FC<Props> = ({ open, audit }) => {
+const AssistantPanel: React.FC<Props> = ({ open, audit, diagnostics }) => {
   const [tab, setTab] = React.useState<Tab>('Chat');
   if (!open) return null;
   return (
@@ -43,7 +44,17 @@ const AssistantPanel: React.FC<Props> = ({ open, audit }) => {
           </div>
         )}
         {tab === 'Run' && <RunConsole />}
-        {tab === 'Diagnostics' && <div>Diagnostics stub: problems will be shown here.</div>}
+        {tab === 'Diagnostics' && (
+          <div className="space-y-1">
+            {(diagnostics ?? []).map((d, i) => (
+              <div key={i} className="border border-white/10 rounded px-2 py-1">
+                <span className="opacity-70 mr-2">{d.severity}</span>
+                {d.message}
+              </div>
+            ))}
+            {(diagnostics?.length ?? 0) === 0 && <div className="opacity-60">No diagnostics</div>}
+          </div>
+        )}
         {tab === 'Changes' && <div>Changes stub: source control changes will be shown here.</div>}
         {tab === 'Kits' && <div>Kits stub: installable add-ons will be shown here.</div>}
       </div>

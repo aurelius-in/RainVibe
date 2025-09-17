@@ -169,6 +169,7 @@ const App: React.FC = () => {
         <aside className="border-l border-white/10 p-0">
           <AssistantPanel
             open={assistantOpen}
+            diagnostics={[]}
             audit={{
               events: events as any,
               onExport: (fmt) => {
