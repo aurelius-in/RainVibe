@@ -55,7 +55,27 @@ const AssistantPanel: React.FC<Props> = ({ open, audit, diagnostics }) => {
             {(diagnostics?.length ?? 0) === 0 && <div className="opacity-60">No diagnostics</div>}
           </div>
         )}
-        {tab === 'Changes' && <div>Changes stub: source control changes will be shown here.</div>}
+        {tab === 'Changes' && (
+          <div className="space-y-2">
+            <button onClick={() => setTab('Changes')} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10">Refresh</button>
+            <div className="space-y-1">
+              {(() => {
+                try {
+                  const entries = (window as any).rainvibe?.gitStatus?.() || [];
+                  if (!entries.length) return <div className="opacity-60">No changes</div>;
+                  return entries.map((e: any, i: number) => (
+                    <div key={i} className="border border-white/10 rounded px-2 py-1 text-xs">
+                      <span className="opacity-70 mr-2">{e.status}</span>
+                      {e.path}
+                    </div>
+                  ));
+                } catch {
+                  return <div className="opacity-60">No changes</div>;
+                }
+              })()}
+            </div>
+          </div>
+        )}
         {tab === 'Kits' && <div>Kits stub: installable add-ons will be shown here.</div>}
       </div>
     </div>
