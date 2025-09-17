@@ -1,6 +1,7 @@
 import { contextBridge } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
+import { execSync } from 'node:child_process';
 
 function safeReadJson(filePath: string): any | null {
   try {
@@ -75,6 +76,32 @@ contextBridge.exposeInMainWorld('rainvibe', {
       if (!abs.startsWith(repoRoot())) return false;
       fs.mkdirSync(path.dirname(abs), { recursive: true });
       fs.writeFileSync(abs, contents, 'utf8');
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  ,
+  gitStatus(): { status: string; path: string }[] {
+    try {
+      const root = repoRoot();
+      const out = execSync('git status --porcelain', { cwd: root, stdio: ['ignore', 'pipe', 'ignore'] }).toString('utf8');
+      return out.split(/\r?\n/).filter(Boolean).map(line => {
+        // format: XY path
+        const status = line.slice(0, 2).trim();
+        const p = line.slice(3).trim();
+        return { status, path: p };
+      });
+    } catch {
+      return [];
+    }
+  }
+  ,
+  appendAudit(line: string): boolean {
+    try {
+      const p = path.join(repoRoot(), '.rainvibe', 'trails.jsonl');
+      fs.mkdirSync(path.dirname(p), { recursive: true });
+      fs.appendFileSync(p, line, 'utf8');
       return true;
     } catch {
       return false;
