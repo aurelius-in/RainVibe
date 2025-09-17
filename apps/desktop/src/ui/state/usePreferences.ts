@@ -5,11 +5,12 @@ export interface Preferences {
   model: string;
   offlineOnly: boolean;
   ghostText?: boolean;
+  telemetryOptIn?: boolean;
 }
 
 const KEY = 'rainvibe.preferences';
 const KEY_FIRST = 'rainvibe.firstRun';
-const DEFAULTS: Preferences = { provider: 'chatgpt', model: 'gpt-4o-mini', offlineOnly: false, ghostText: true };
+const DEFAULTS: Preferences = { provider: 'chatgpt', model: 'gpt-4o-mini', offlineOnly: false, ghostText: true, telemetryOptIn: false };
 
 export function usePreferences() {
   const [prefs, setPrefs] = React.useState<Preferences>(() => {

@@ -1,14 +1,39 @@
 import React from 'react';
-import Editor, { loader, DiffEditor } from '@monaco-editor/react';
+import Editor, { DiffEditor } from '@monaco-editor/react';
 
 interface Props {
   value: string;
   language: string;
   onChange: (val: string) => void;
   inlineAutocompleteEnabled?: boolean;
+  diagnostics?: Array<{ message: string; severity: 'error' | 'warning' | 'info'; startLine: number; startColumn: number; endLine: number; endColumn: number }>
 }
 
-const EditorHost: React.FC<Props> = ({ value, language, onChange, inlineAutocompleteEnabled }) => {
+const EditorHost: React.FC<Props> = ({ value, language, onChange, inlineAutocompleteEnabled, diagnostics }) => {
+  const editorRef = React.useRef<any>(null);
+  const monacoRef = React.useRef<any>(null);
+
+  React.useEffect(() => {
+    if (!editorRef.current || !monacoRef.current) return;
+    const monaco = monacoRef.current;
+    const model = editorRef.current.getModel();
+    if (!model) return;
+    const severityMap: Record<string, number> = {
+      error: monaco.MarkerSeverity.Error,
+      warning: monaco.MarkerSeverity.Warning,
+      info: monaco.MarkerSeverity.Info,
+    };
+    const markers = (diagnostics ?? []).map(d => ({
+      message: d.message,
+      severity: severityMap[d.severity] ?? monaco.MarkerSeverity.Info,
+      startLineNumber: d.startLine,
+      startColumn: d.startColumn,
+      endLineNumber: d.endLine,
+      endColumn: d.endColumn,
+    }));
+    monaco.editor.setModelMarkers(model, 'rainvibe', markers);
+  }, [diagnostics]);
+
   return (
     <Editor
       height="100%"
@@ -16,6 +41,10 @@ const EditorHost: React.FC<Props> = ({ value, language, onChange, inlineAutocomp
       value={value}
       defaultLanguage={language}
       onChange={(v) => onChange(v ?? '')}
+      onMount={(editor, monaco) => {
+        editorRef.current = editor;
+        monacoRef.current = monaco;
+      }}
       beforeMount={(monaco) => {
         if (!inlineAutocompleteEnabled) return;
         monaco.languages.registerInlineCompletionsProvider(language as any, {

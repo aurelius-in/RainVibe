@@ -8,6 +8,7 @@ import ActionBoard from './components/ActionBoard';
 import PreferencesModal from './components/PreferencesModal';
 import AboutModal from './components/AboutModal';
 import WorkspaceTree from './components/WorkspaceTree';
+import SearchPanel from './components/SearchPanel';
 import { usePolicy } from './state/usePolicy';
 import { useAuditLog } from './state/useAuditLog';
 import { exportHTML, exportJSONL, exportPDF } from '@rainvibe/audit/src/exports';
@@ -64,6 +65,10 @@ const App: React.FC = () => {
     registry.register({ id: 'toggle-policy', title: 'Toggle Policy-Safe', run: () => togglePolicy() });
     registry.register({ id: 'open-preferences', title: 'Open Preferences', run: () => setPrefsOpen(true) });
     registry.register({ id: 'open-about', title: 'Open About', run: () => setAboutOpen(true) });
+    registry.register({ id: 'policy-simulate', title: 'Simulate Policy Check', run: () => {
+      // Stub: just create an alert to show where results would surface
+      alert('Policy simulation: all checks passed (stub).');
+    }});
   }, [setModes, togglePolicy]);
 
   React.useEffect(() => {
@@ -97,8 +102,15 @@ const App: React.FC = () => {
       />
       <div className="flex-1 grid grid-cols-[260px_minmax(0,1fr)_360px] grid-rows-[minmax(0,1fr)]">
         <aside className="border-r border-white/10 p-2">
-          <div className="text-sm font-semibold mb-2">Workspace</div>
+          <div className="text-sm font-semibold mb-2">Left Rail</div>
+          <div className="flex gap-2 mb-2 text-xs">
+            <button className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10">Workspace</button>
+            <button className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10">Search</button>
+          </div>
           <WorkspaceTree />
+          <div className="mt-4">
+            <SearchPanel />
+          </div>
         </aside>
         <main className="p-0">
           <div className="h-full w-full bg-black">

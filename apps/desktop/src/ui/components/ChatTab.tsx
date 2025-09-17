@@ -1,5 +1,6 @@
 import React from 'react';
 import { useAiClient } from '../state/useAiClient';
+import { usePreferences } from '../state/usePreferences';
 
 interface Message { role: 'user' | 'assistant'; content: string }
 
@@ -7,6 +8,7 @@ const ChatTab: React.FC = () => {
   const [messages, setMessages] = React.useState<Message[]>([]);
   const [input, setInput] = React.useState('');
   const { chat } = useAiClient();
+  const { prefs } = usePreferences();
 
   const runSlash = async (text: string) => {
     if (text.startsWith('/plan')) return 'Planned: outline steps.';
@@ -26,7 +28,8 @@ const ChatTab: React.FC = () => {
       return;
     }
     const reply = await chat([{ role: 'user', content: trimmed } as any]);
-    setMessages((m) => [...m, { role: 'assistant', content: reply }]);
+    const hint = prefs.offlineOnly ? ' (offline)' : '';
+    setMessages((m) => [...m, { role: 'assistant', content: reply + hint }]);
   };
 
   return (
