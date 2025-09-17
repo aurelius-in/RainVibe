@@ -1,6 +1,7 @@
 <div align="center">
   <img src="rain_vibe_logo.png" alt="RainVibe logo" width="200" />
 </div>
+
 ---
 
 ## In a nutshell 
