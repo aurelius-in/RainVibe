@@ -1,4 +1,5 @@
 import React from 'react';
+import { useFlows } from '../state/useFlows';
 import ChatTab from './ChatTab';
 import RunConsole from './RunConsole';
 
@@ -30,7 +31,33 @@ const AssistantPanel: React.FC<Props> = ({ open, audit, diagnostics, onOpenPath,
       </div>
       <div className="flex-1 p-2 text-xs opacity-80">
         {tab === 'Chat' && <ChatTab />}
-        {tab === 'Tasks' && <div>Tasks and Flows coming soon.</div>}
+        {tab === 'Tasks' && (
+          <div className="space-y-2">
+            {(() => {
+              const { items, add, toggle, remove } = useFlows();
+              return (
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <input id="flows-new" placeholder="New task" className="flex-1 px-2 py-1 bg-black text-white border border-white/15 rounded" />
+                    <button onClick={() => { const el = document.getElementById('flows-new') as HTMLInputElement | null; if (el && el.value.trim()) { add(el.value.trim()); el.value=''; } }} className="px-2 py-1 border border-white/15 rounded hover:bg-white/10">Add</button>
+                  </div>
+                  <div className="space-y-1">
+                    {items.map(i => (
+                      <div key={i.id} className="flex items-center justify-between border border-white/10 rounded px-2 py-1 text-xs">
+                        <label className="flex items-center gap-2">
+                          <input type="checkbox" checked={i.done} onChange={() => toggle(i.id)} />
+                          <span className={i.done ? 'line-through opacity-60' : ''}>{i.title}</span>
+                        </label>
+                        <button onClick={() => remove(i.id)} className="opacity-60 hover:opacity-100">Remove</button>
+                      </div>
+                    ))}
+                    {items.length === 0 && <div className="opacity-60">No tasks</div>}
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        )}
         {tab === 'Modes' && <div>Toggle and configure Modes here.</div>}
         {tab === 'Trails' && (
           <div>
