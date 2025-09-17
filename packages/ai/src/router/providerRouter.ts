@@ -1,4 +1,5 @@
 import { AiProvider, AiProviderConfig, AiMessage } from '../types';
+import { ChatGPTProvider } from '../providers/chatgpt';
 
 class NullProvider implements AiProvider {
   name = 'offline-null';
@@ -12,7 +13,7 @@ class NullProvider implements AiProvider {
 
 export function createProvider(config: AiProviderConfig): AiProvider {
   if (config.offlineOnly) return new NullProvider();
-  // Default to ChatGPT stub until wired
+  if (config.provider === 'chatgpt') return new ChatGPTProvider(config);
   return new NullProvider();
 }
 

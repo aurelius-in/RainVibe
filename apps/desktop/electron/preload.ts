@@ -39,6 +39,25 @@ contextBridge.exposeInMainWorld('rainvibe', {
   },
   policyFiles(): string[] {
     return listPolicyFiles();
+  },
+  readReadme(): string | null {
+    try {
+      const p = path.join(repoRoot(), 'README.md');
+      return fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : null;
+    } catch {
+      return null;
+    }
+  },
+  listDir(dir?: string): { path: string; name: string; isDir: boolean }[] {
+    try {
+      const base = dir ? path.resolve(repoRoot(), dir) : repoRoot();
+      const entries = fs.readdirSync(base, { withFileTypes: true });
+      return entries
+        .filter(e => !e.name.startsWith('.') && e.name !== 'node_modules' && e.name !== 'dist' && e.name !== 'build' && e.name !== 'out')
+        .map(e => ({ path: path.relative(repoRoot(), path.join(base, e.name)), name: e.name, isDir: e.isDirectory() }));
+    } catch {
+      return [];
+    }
   }
 });
 

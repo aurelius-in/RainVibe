@@ -6,9 +6,13 @@ import { useModes } from './state/useModes';
 import AssistantPanel from './components/AssistantPanel';
 import ActionBoard from './components/ActionBoard';
 import PreferencesModal from './components/PreferencesModal';
+import AboutModal from './components/AboutModal';
+import WorkspaceTree from './components/WorkspaceTree';
 import { usePolicy } from './state/usePolicy';
 import { useAuditLog } from './state/useAuditLog';
 import { exportHTML, exportJSONL, exportPDF } from '@rainvibe/audit/src/exports';
+import { registry } from './commands/registry';
+import { usePreferences } from './state/usePreferences';
 
 const TopBar: React.FC<{ modes: string[]; onChange: (m: string[]) => void; onOpenBoard: () => void; onToggleAssistant: () => void; }>
   = ({ modes, onChange, onOpenBoard, onToggleAssistant }) => {
@@ -44,11 +48,43 @@ const App: React.FC = () => {
   const { buffers, activeId, update } = useBuffers();
   const active = buffers.find(b => b.id === activeId) ?? buffers[0];
   const { active: activeModes, update: setModes } = useModes();
+  const { status: policy, toggle: togglePolicy } = usePolicy();
+  const { events } = useAuditLog();
+  const { prefs } = usePreferences();
   const [assistantOpen, setAssistantOpen] = React.useState(true);
   const [boardOpen, setBoardOpen] = React.useState(false);
   const [prefsOpen, setPrefsOpen] = React.useState(false);
-  const { status: policy, toggle: togglePolicy } = usePolicy();
-  const { events } = useAuditLog();
+  const [aboutOpen, setAboutOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    registry.register({ id: 'toggle-assistant', title: 'Toggle Assistant Panel', run: () => setAssistantOpen(v => !v) });
+    registry.register({ id: 'mode-basic', title: 'Switch Mode: Basic', run: () => setModes(['Basic'] as any) });
+    registry.register({ id: 'toggle-policy', title: 'Toggle Policy-Safe', run: () => togglePolicy() });
+    registry.register({ id: 'open-preferences', title: 'Open Preferences', run: () => setPrefsOpen(true) });
+    registry.register({ id: 'open-about', title: 'Open About', run: () => setAboutOpen(true) });
+  }, [setModes, togglePolicy]);
+
+  React.useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const meta = e.ctrlKey || e.metaKey;
+      if (meta && e.key.toLowerCase() === 'i') { setAssistantOpen(v => !v); e.preventDefault(); }
+      if (meta && e.key.toLowerCase() === 'k') { setBoardOpen(true); e.preventDefault(); }
+      if (meta && ['1','2','3','4','5'].includes(e.key)) {
+        const map: Record<string, string[]> = {
+          '1': ['Basic'],
+          '2': ['Coach'],
+          '3': ['Bug Fixer'],
+          '4': ['Policy-Safe'],
+          '5': ['Compliance/Audit'],
+        };
+        setModes(map[e.key] as any);
+        e.preventDefault();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [setModes]);
+
   return (
     <div className="h-full w-full flex flex-col bg-black text-white">
       <TopBar
@@ -60,7 +96,7 @@ const App: React.FC = () => {
       <div className="flex-1 grid grid-cols-[260px_minmax(0,1fr)_360px] grid-rows-[minmax(0,1fr)]">
         <aside className="border-r border-white/10 p-2">
           <div className="text-sm font-semibold mb-2">Workspace</div>
-          <div className="text-xs opacity-70">Open a folder to begin.</div>
+          <WorkspaceTree />
         </aside>
         <main className="p-0">
           <div className="h-full w-full bg-black">
@@ -68,6 +104,7 @@ const App: React.FC = () => {
               value={active.content}
               language={active.language}
               onChange={(v) => update(active.id, v)}
+              inlineAutocompleteEnabled={!!prefs.ghostText}
             />
           </div>
         </main>
@@ -99,14 +136,10 @@ const App: React.FC = () => {
       <ActionBoard
         open={boardOpen}
         onClose={() => setBoardOpen(false)}
-        commands={[
-          { id: 'toggle-assistant', title: 'Toggle Assistant Panel', run: () => setAssistantOpen(v => !v) },
-          { id: 'mode-basic', title: 'Switch Mode: Basic', run: () => setModes(['Basic'] as any) },
-          { id: 'toggle-policy', title: 'Toggle Policy-Safe', run: () => togglePolicy() },
-          { id: 'open-preferences', title: 'Open Preferences', run: () => setPrefsOpen(true) },
-        ]}
+        commands={registry.getAll()}
       />
       <PreferencesModal open={prefsOpen} onClose={() => setPrefsOpen(false)} />
+      <AboutModal open={aboutOpen} onClose={() => setAboutOpen(false)} />
     </div>
   );
 };

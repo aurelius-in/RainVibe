@@ -1,8 +1,8 @@
 import React from 'react';
 
-type Tab = 'Chat' | 'Tasks' | 'Modes' | 'Trails' | 'Run';
+type Tab = 'Chat' | 'Tasks' | 'Modes' | 'Trails' | 'Run' | 'Diagnostics' | 'Changes' | 'Kits';
 
-const tabs: Tab[] = ['Chat', 'Tasks', 'Modes', 'Trails', 'Run'];
+const tabs: Tab[] = ['Chat', 'Tasks', 'Modes', 'Trails', 'Run', 'Diagnostics', 'Changes', 'Kits'];
 
 interface Props {
   open: boolean;
@@ -41,6 +41,9 @@ const AssistantPanel: React.FC<Props> = ({ open, audit }) => {
           </div>
         )}
         {tab === 'Run' && <div>Run Console stub. Execution wiring will come later.</div>}
+        {tab === 'Diagnostics' && <div>Diagnostics stub: problems will be shown here.</div>}
+        {tab === 'Changes' && <div>Changes stub: source control changes will be shown here.</div>}
+        {tab === 'Kits' && <div>Kits stub: installable add-ons will be shown here.</div>}
       </div>
     </div>
   );
