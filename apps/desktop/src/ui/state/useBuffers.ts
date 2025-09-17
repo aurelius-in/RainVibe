@@ -8,10 +8,24 @@ export interface Buffer {
 }
 
 export function useBuffers() {
-  const [buffers, setBuffers] = React.useState<Buffer[]>([{
-    id: 'welcome', path: 'WELCOME.ts', language: 'typescript', content: '// RainVibe — dark-only, Monaco-based IDE\n',
-  }]);
-  const [activeId, setActiveId] = React.useState<string>('welcome');
+  const [buffers, setBuffers] = React.useState<Buffer[]>(() => {
+    try {
+      const raw = localStorage.getItem('rainvibe.buffers');
+      return raw ? JSON.parse(raw) as Buffer[] : [{ id: 'welcome', path: 'WELCOME.ts', language: 'typescript', content: '// RainVibe — dark-only, Monaco-based IDE\n' }];
+    } catch {
+      return [{ id: 'welcome', path: 'WELCOME.ts', language: 'typescript', content: '// RainVibe — dark-only, Monaco-based IDE\n' }];
+    }
+  });
+  const [activeId, setActiveId] = React.useState<string>(() => {
+    try { return localStorage.getItem('rainvibe.buffers.active') || 'welcome'; } catch { return 'welcome'; }
+  });
+
+  React.useEffect(() => {
+    try { localStorage.setItem('rainvibe.buffers', JSON.stringify(buffers)); } catch {}
+  }, [buffers]);
+  React.useEffect(() => {
+    try { localStorage.setItem('rainvibe.buffers.active', activeId); } catch {}
+  }, [activeId]);
 
   const update = (id: string, content: string) => {
     setBuffers((prev) => prev.map(b => b.id === id ? { ...b, content } : b));
@@ -28,6 +42,7 @@ export function useBuffers() {
         return [...prev, { id, path: relPath, language: guessLang(relPath), content: String(text) }];
       });
       setActiveId(id);
+      pushRecent(relPath);
     } catch {}
   };
 
@@ -35,7 +50,9 @@ export function useBuffers() {
     const buf = buffers.find(b => b.id === id);
     if (!buf) return false;
     try {
-      return !!(window as any).rainvibe?.writeTextFile?.(buf.path, buf.content);
+      const ok = !!(window as any).rainvibe?.writeTextFile?.(buf.path, buf.content);
+      if (ok) pushRecent(buf.path);
+      return ok;
     } catch { return false; }
   };
 
@@ -53,7 +70,17 @@ export function useBuffers() {
     setActiveId(id);
   };
 
-  return { buffers, activeId, setActiveId, update, open, save, close, newBuffer };
+  const closeOthers = (id: string) => {
+    setBuffers(prev => prev.filter(b => b.id === id));
+    setActiveId(id);
+  };
+
+  const closeAll = () => {
+    setBuffers(prev => prev.filter(b => b.id === 'welcome'));
+    setActiveId('welcome');
+  };
+
+  return { buffers, activeId, setActiveId, update, open, save, close, newBuffer, closeOthers, closeAll };
 }
 
 function guessLang(p: string): string {
@@ -63,5 +90,14 @@ function guessLang(p: string): string {
   if (p.endsWith('.md')) return 'markdown';
   if (p.endsWith('.css')) return 'css';
   return 'plaintext';
+}
+
+function pushRecent(p: string) {
+  try {
+    const key = 'rainvibe.recent';
+    const arr = JSON.parse(localStorage.getItem(key) || '[]') as string[];
+    const next = [p, ...arr.filter(x => x !== p)].slice(0, 10);
+    localStorage.setItem(key, JSON.stringify(next));
+  } catch {}
 }
 
