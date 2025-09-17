@@ -6,6 +6,8 @@ import { useModes } from './state/useModes';
 import AssistantPanel from './components/AssistantPanel';
 import ActionBoard from './components/ActionBoard';
 import PreferencesModal from './components/PreferencesModal';
+import AboutModal from './components/AboutModal';
+import WorkspaceTree from './components/WorkspaceTree';
 import { usePolicy } from './state/usePolicy';
 import { useAuditLog } from './state/useAuditLog';
 import { exportHTML, exportJSONL, exportPDF } from '@rainvibe/audit/src/exports';
@@ -47,6 +49,7 @@ const App: React.FC = () => {
   const [assistantOpen, setAssistantOpen] = React.useState(true);
   const [boardOpen, setBoardOpen] = React.useState(false);
   const [prefsOpen, setPrefsOpen] = React.useState(false);
+  const [aboutOpen, setAboutOpen] = React.useState(false);
   const { status: policy, toggle: togglePolicy } = usePolicy();
   const { events } = useAuditLog();
   return (
@@ -60,7 +63,7 @@ const App: React.FC = () => {
       <div className="flex-1 grid grid-cols-[260px_minmax(0,1fr)_360px] grid-rows-[minmax(0,1fr)]">
         <aside className="border-r border-white/10 p-2">
           <div className="text-sm font-semibold mb-2">Workspace</div>
-          <div className="text-xs opacity-70">Open a folder to begin.</div>
+          <WorkspaceTree />
         </aside>
         <main className="p-0">
           <div className="h-full w-full bg-black">
@@ -104,9 +107,11 @@ const App: React.FC = () => {
           { id: 'mode-basic', title: 'Switch Mode: Basic', run: () => setModes(['Basic'] as any) },
           { id: 'toggle-policy', title: 'Toggle Policy-Safe', run: () => togglePolicy() },
           { id: 'open-preferences', title: 'Open Preferences', run: () => setPrefsOpen(true) },
+          { id: 'open-about', title: 'Open About', run: () => setAboutOpen(true) },
         ]}
       />
       <PreferencesModal open={prefsOpen} onClose={() => setPrefsOpen(false)} />
+      <AboutModal open={aboutOpen} onClose={() => setAboutOpen(false)} />
     </div>
   );
 };
