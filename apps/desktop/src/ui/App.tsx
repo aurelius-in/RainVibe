@@ -206,6 +206,9 @@ const App: React.FC = () => {
                 }
               }
             }}
+            onOpenPath={(p) => open(p)}
+            policyEnabled={policy.enabled}
+            onTogglePolicy={() => togglePolicy()}
           />
         </aside>
       </div>

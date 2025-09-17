@@ -2,17 +2,20 @@ import React from 'react';
 import ChatTab from './ChatTab';
 import RunConsole from './RunConsole';
 
-type Tab = 'Chat' | 'Tasks' | 'Modes' | 'Trails' | 'Run' | 'Diagnostics' | 'Changes' | 'Kits';
+type Tab = 'Chat' | 'Tasks' | 'Modes' | 'Trails' | 'Run' | 'Diagnostics' | 'Changes' | 'Kits' | 'Guardrails';
 
-const tabs: Tab[] = ['Chat', 'Tasks', 'Modes', 'Trails', 'Run', 'Diagnostics', 'Changes', 'Kits'];
+const tabs: Tab[] = ['Chat', 'Tasks', 'Modes', 'Trails', 'Run', 'Diagnostics', 'Changes', 'Kits', 'Guardrails'];
 
 interface Props {
   open: boolean;
   audit?: { events: Array<{ id: string; ts: number; kind: string }>; onExport: (fmt: 'html' | 'jsonl' | 'pdf') => void };
   diagnostics?: Array<{ message: string; severity: 'error' | 'warning' | 'info' }>;
+  onOpenPath?: (path: string) => void;
+  policyEnabled?: boolean;
+  onTogglePolicy?: () => void;
 }
 
-const AssistantPanel: React.FC<Props> = ({ open, audit, diagnostics }) => {
+const AssistantPanel: React.FC<Props> = ({ open, audit, diagnostics, onOpenPath, policyEnabled, onTogglePolicy }) => {
   const [tab, setTab] = React.useState<Tab>('Chat');
   if (!open) return null;
   return (
@@ -64,7 +67,7 @@ const AssistantPanel: React.FC<Props> = ({ open, audit, diagnostics }) => {
                   const entries = (window as any).rainvibe?.gitStatus?.() || [];
                   if (!entries.length) return <div className="opacity-60">No changes</div>;
                   return entries.map((e: any, i: number) => (
-                    <div key={i} className="border border-white/10 rounded px-2 py-1 text-xs">
+                    <div key={i} className="border border-white/10 rounded px-2 py-1 text-xs hover:bg-white/10 cursor-pointer" onClick={() => onOpenPath && onOpenPath(e.path)}>
                       <span className="opacity-70 mr-2">{e.status}</span>
                       {e.path}
                     </div>
@@ -77,6 +80,25 @@ const AssistantPanel: React.FC<Props> = ({ open, audit, diagnostics }) => {
           </div>
         )}
         {tab === 'Kits' && <div>Kits stub: installable add-ons will be shown here.</div>}
+        {tab === 'Guardrails' && (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xs opacity-70">Policy-Safe:</span>
+              <button onClick={onTogglePolicy} className={`px-2 py-0.5 border border-white/15 rounded ${policyEnabled ? 'bg-white/20' : 'hover:bg-white/10'}`}>{policyEnabled ? 'On' : 'Off'}</button>
+            </div>
+            <div className="space-y-1">
+              {(() => {
+                try {
+                  const files = (window as any).rainvibe?.policyFiles?.() || [];
+                  if (!files.length) return <div className="opacity-60 text-xs">No policy files</div>;
+                  return files.map((p: string) => (
+                    <div key={p} className="border border-white/10 rounded px-2 py-1 text-xs">{p}</div>
+                  ));
+                } catch { return <div className="opacity-60 text-xs">No policy files</div>; }
+              })()}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
