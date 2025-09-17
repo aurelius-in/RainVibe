@@ -17,7 +17,12 @@ const createWindow = async () => {
     title: 'RainVibe',
   });
 
-  await win.loadFile(path.join(__dirname, '../renderer/index.html'));
+  const devUrl = process.env.VITE_DEV_SERVER_URL;
+  if (devUrl) {
+    await win.loadURL(devUrl);
+  } else {
+    await win.loadFile(path.join(__dirname, '../renderer/index.html'));
+  }
 };
 
 app.whenReady().then(createWindow);
