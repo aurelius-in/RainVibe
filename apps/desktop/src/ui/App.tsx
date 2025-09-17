@@ -15,6 +15,7 @@ import { exportHTML, exportJSONL, exportPDF } from '@rainvibe/audit/src/exports'
 import { registry } from './commands/registry';
 import { usePreferences } from './state/usePreferences';
 import FirstRunModal, { shouldShowFirstRun } from './components/FirstRunModal';
+import DiffPatchPreview from './components/DiffPatchPreview';
 
 const TopBar: React.FC<{ modes: string[]; onChange: (m: string[]) => void; onOpenBoard: () => void; onToggleAssistant: () => void; }>
   = ({ modes, onChange, onOpenBoard, onToggleAssistant }) => {
@@ -34,14 +35,14 @@ const TopBar: React.FC<{ modes: string[]; onChange: (m: string[]) => void; onOpe
   );
 };
 
-const StatusBar: React.FC<{ modes: string[]; policyOn: boolean; auditCount: number; model: string }>= ({ modes, policyOn, auditCount, model }) => {
+const StatusBar: React.FC<{ modes: string[]; policyOn: boolean; auditCount: number; model: string; tokensPct: number }>= ({ modes, policyOn, auditCount, model, tokensPct }) => {
   return (
     <div className="h-6 text-xs px-3 flex items-center gap-4 border-t border-white/10 bg-black text-white/80">
       <span>model: {model}</span>
       <span>mode: {modes.join(' + ') || '—'}</span>
       <span>policy: {policyOn ? 'on' : 'off'}</span>
       <span>audit: {auditCount}</span>
-      <span>tokens: 0%</span>
+      <span>tokens: {Math.min(100, Math.max(0, Math.round(tokensPct)))}%</span>
     </div>
   );
 };
@@ -58,8 +59,21 @@ const App: React.FC = () => {
   const [prefsOpen, setPrefsOpen] = React.useState(false);
   const [aboutOpen, setAboutOpen] = React.useState(false);
   const [firstOpen, setFirstOpen] = React.useState(() => shouldShowFirstRun());
+  const [leftRail, setLeftRail] = React.useState<'workspace' | 'search'>('workspace');
+  const [showDiff, setShowDiff] = React.useState(false);
+  const [diffOriginal, setDiffOriginal] = React.useState('');
+  const [diffModified, setDiffModified] = React.useState('');
 
   React.useEffect(() => {
+    // Simple diagnostics: mark lines containing TODO as warnings
+    const lines = (active?.content || '').split('\n');
+    // We can't set diagnostics state here without importing it above; leaving as a stub for now
+  }, [active?.content]);
+
+  const tokensPct = React.useMemo(() => {
+    const len = (active?.content || '').length;
+    return Math.min(100, (len / 4000) * 100);
+  }, [active?.content]);
     registry.register({ id: 'toggle-assistant', title: 'Toggle Assistant Panel', run: () => setAssistantOpen(v => !v) });
     registry.register({ id: 'mode-basic', title: 'Switch Mode: Basic', run: () => setModes(['Basic'] as any) });
     registry.register({ id: 'toggle-policy', title: 'Toggle Policy-Safe', run: () => togglePolicy() });
@@ -69,6 +83,13 @@ const App: React.FC = () => {
       // Stub: just create an alert to show where results would surface
       alert('Policy simulation: all checks passed (stub).');
     }});
+    registry.register({ id: 'open-patch-preview', title: 'Open Patch Preview', run: () => {
+      setDiffOriginal(active?.content || '');
+      setDiffModified((active?.content || '') + '\n// TODO: refine');
+      setShowDiff(true);
+    }});
+    registry.register({ id: 'left-rail-workspace', title: 'Show Workspace', run: () => setLeftRail('workspace') });
+    registry.register({ id: 'left-rail-search', title: 'Show Search', run: () => setLeftRail('search') });
   }, [setModes, togglePolicy]);
 
   React.useEffect(() => {
@@ -76,6 +97,12 @@ const App: React.FC = () => {
       const meta = e.ctrlKey || e.metaKey;
       if (meta && e.key.toLowerCase() === 'i') { setAssistantOpen(v => !v); e.preventDefault(); }
       if (meta && e.key.toLowerCase() === 'k') { setBoardOpen(true); e.preventDefault(); }
+      if (meta && e.shiftKey && e.key === 'Enter') {
+        setDiffOriginal(active?.content || '');
+        setDiffModified((active?.content || '') + '\n// TODO: refine');
+        setShowDiff(true);
+        e.preventDefault();
+      }
       if (meta && ['1','2','3','4','5'].includes(e.key)) {
         const map: Record<string, string[]> = {
           '1': ['Basic'],
@@ -104,13 +131,10 @@ const App: React.FC = () => {
         <aside className="border-r border-white/10 p-2">
           <div className="text-sm font-semibold mb-2">Left Rail</div>
           <div className="flex gap-2 mb-2 text-xs">
-            <button className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10">Workspace</button>
-            <button className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10">Search</button>
+            <button onClick={() => setLeftRail('workspace')} className={`px-2 py-0.5 border border-white/15 rounded ${leftRail==='workspace' ? 'bg-white/10' : 'hover:bg-white/10'}`}>Workspace</button>
+            <button onClick={() => setLeftRail('search')} className={`px-2 py-0.5 border border-white/15 rounded ${leftRail==='search' ? 'bg-white/10' : 'hover:bg-white/10'}`}>Search</button>
           </div>
-          <WorkspaceTree />
-          <div className="mt-4">
-            <SearchPanel />
-          </div>
+          {leftRail === 'workspace' ? <WorkspaceTree /> : <SearchPanel />}
         </aside>
         <main className="p-0">
           <div className="h-full w-full bg-black">
@@ -119,6 +143,7 @@ const App: React.FC = () => {
               language={active.language}
               onChange={(v) => update(active.id, v)}
               inlineAutocompleteEnabled={!!prefs.ghostText}
+              diagnostics={[]}
             />
           </div>
         </main>
@@ -146,7 +171,7 @@ const App: React.FC = () => {
           />
         </aside>
       </div>
-      <StatusBar modes={activeModes as any} policyOn={policy.enabled} auditCount={events.length} model={prefs.model} />
+      <StatusBar modes={activeModes as any} policyOn={policy.enabled} auditCount={events.length} model={prefs.model} tokensPct={tokensPct} />
       <ActionBoard
         open={boardOpen}
         onClose={() => setBoardOpen(false)}
