@@ -13,6 +13,7 @@ import { useAuditLog } from './state/useAuditLog';
 import { exportHTML, exportJSONL, exportPDF } from '@rainvibe/audit/src/exports';
 import { registry } from './commands/registry';
 import { usePreferences } from './state/usePreferences';
+import FirstRunModal, { shouldShowFirstRun } from './components/FirstRunModal';
 
 const TopBar: React.FC<{ modes: string[]; onChange: (m: string[]) => void; onOpenBoard: () => void; onToggleAssistant: () => void; }>
   = ({ modes, onChange, onOpenBoard, onToggleAssistant }) => {
@@ -32,10 +33,10 @@ const TopBar: React.FC<{ modes: string[]; onChange: (m: string[]) => void; onOpe
   );
 };
 
-const StatusBar: React.FC<{ modes: string[]; policyOn: boolean; auditCount: number }>= ({ modes, policyOn, auditCount }) => {
+const StatusBar: React.FC<{ modes: string[]; policyOn: boolean; auditCount: number; model: string }>= ({ modes, policyOn, auditCount, model }) => {
   return (
     <div className="h-6 text-xs px-3 flex items-center gap-4 border-t border-white/10 bg-black text-white/80">
-      <span>model: ChatGPT</span>
+      <span>model: {model}</span>
       <span>mode: {modes.join(' + ') || '—'}</span>
       <span>policy: {policyOn ? 'on' : 'off'}</span>
       <span>audit: {auditCount}</span>
@@ -55,6 +56,7 @@ const App: React.FC = () => {
   const [boardOpen, setBoardOpen] = React.useState(false);
   const [prefsOpen, setPrefsOpen] = React.useState(false);
   const [aboutOpen, setAboutOpen] = React.useState(false);
+  const [firstOpen, setFirstOpen] = React.useState(() => shouldShowFirstRun());
 
   React.useEffect(() => {
     registry.register({ id: 'toggle-assistant', title: 'Toggle Assistant Panel', run: () => setAssistantOpen(v => !v) });
@@ -132,7 +134,7 @@ const App: React.FC = () => {
           />
         </aside>
       </div>
-      <StatusBar modes={activeModes as any} policyOn={policy.enabled} auditCount={events.length} />
+      <StatusBar modes={activeModes as any} policyOn={policy.enabled} auditCount={events.length} model={prefs.model} />
       <ActionBoard
         open={boardOpen}
         onClose={() => setBoardOpen(false)}
@@ -140,6 +142,7 @@ const App: React.FC = () => {
       />
       <PreferencesModal open={prefsOpen} onClose={() => setPrefsOpen(false)} />
       <AboutModal open={aboutOpen} onClose={() => setAboutOpen(false)} />
+      <FirstRunModal open={firstOpen} onClose={() => setFirstOpen(false)} onOpenPreferences={() => setPrefsOpen(true)} />
     </div>
   );
 };
