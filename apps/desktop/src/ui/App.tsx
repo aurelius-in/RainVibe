@@ -56,12 +56,16 @@ const App: React.FC = () => {
   const { status: policy, toggle: togglePolicy } = usePolicy();
   const { events } = useAuditLog();
   const { prefs } = usePreferences();
-  const [assistantOpen, setAssistantOpen] = React.useState(true);
+  const [assistantOpen, setAssistantOpen] = React.useState<boolean>(() => {
+    try { return localStorage.getItem('rainvibe.ui.assistantOpen') !== 'false'; } catch { return true; }
+  });
   const [boardOpen, setBoardOpen] = React.useState(false);
   const [prefsOpen, setPrefsOpen] = React.useState(false);
   const [aboutOpen, setAboutOpen] = React.useState(false);
   const [firstOpen, setFirstOpen] = React.useState(() => shouldShowFirstRun());
-  const [leftRail, setLeftRail] = React.useState<'workspace' | 'search'>('workspace');
+  const [leftRail, setLeftRail] = React.useState<'workspace' | 'search'>(() => {
+    try { return (localStorage.getItem('rainvibe.ui.leftRail') as any) || 'workspace'; } catch { return 'workspace'; }
+  });
   const [showDiff, setShowDiff] = React.useState(false);
   const [diffOriginal, setDiffOriginal] = React.useState('');
   const [diffModified, setDiffModified] = React.useState('');
@@ -138,8 +142,8 @@ const App: React.FC = () => {
         <aside className="border-r border-white/10 p-2">
           <div className="text-sm font-semibold mb-2">Left Rail</div>
           <div className="flex gap-2 mb-2 text-xs">
-            <button onClick={() => setLeftRail('workspace')} className={`px-2 py-0.5 border border-white/15 rounded ${leftRail==='workspace' ? 'bg-white/10' : 'hover:bg-white/10'}`}>Workspace</button>
-            <button onClick={() => setLeftRail('search')} className={`px-2 py-0.5 border border-white/15 rounded ${leftRail==='search' ? 'bg-white/10' : 'hover:bg-white/10'}`}>Search</button>
+            <button onClick={() => { setLeftRail('workspace'); try { localStorage.setItem('rainvibe.ui.leftRail', 'workspace'); } catch {} }} className={`px-2 py-0.5 border border-white/15 rounded ${leftRail==='workspace' ? 'bg-white/10' : 'hover:bg-white/10'}`}>Workspace</button>
+            <button onClick={() => { setLeftRail('search'); try { localStorage.setItem('rainvibe.ui.leftRail', 'search'); } catch {} }} className={`px-2 py-0.5 border border-white/15 rounded ${leftRail==='search' ? 'bg-white/10' : 'hover:bg-white/10'}`}>Search</button>
           </div>
           {leftRail === 'workspace' ? <WorkspaceTree /> : <SearchPanel />}
         </aside>
