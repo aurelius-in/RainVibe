@@ -1,0 +1,9 @@
+{
+  "name": "Sample Org",
+  "defaults": {
+    "provider": "chatgpt",
+    "model": "gpt-4o-mini",
+    "offlineOnly": false
+  }
+}
+
