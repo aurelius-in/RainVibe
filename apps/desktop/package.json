@@ -3,12 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "main": "dist/main/index.cjs",
+  "main": "dist/main/electron/main.js",
   "description": "RainVibe Desktop (Electron + React + Tailwind + Vite)",
   "scripts": {
-    "dev": "rimraf dist && run-p dev:main dev:renderer",
-    "dev:main": "vite-node electron/main.dev.ts --watch",
+    "dev": "rimraf dist && run-p dev:renderer dev:main:watch dev:electron",
     "dev:renderer": "vite --config vite.renderer.config.ts",
+    "dev:main:watch": "tsc -p tsconfig.main.json --watch",
+    "dev:electron": "wait-on tcp:5173 && electron .",
     "build": "rimraf dist && run-s build:renderer build:main",
     "build:renderer": "vite build --config vite.renderer.config.ts",
     "build:main": "tsc -p tsconfig.main.json && node scripts/copy-assets.cjs",
@@ -16,7 +17,9 @@
   },
   "dependencies": {
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "@monaco-editor/react": "^4.6.0",
+    "monaco-editor": "^0.52.0"
   },
   "devDependencies": {
     "@types/node": "^20.12.12",
@@ -29,6 +32,7 @@
     "rimraf": "^5.0.7",
     "run-script-os": "^1.1.6",
     "npm-run-all": "^4.1.5",
+    "wait-on": "^7.2.0",
     "tailwindcss": "^3.4.9",
     "typescript": "^5.5.4",
     "vite": "^5.4.1",
