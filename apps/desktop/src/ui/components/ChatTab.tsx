@@ -14,6 +14,9 @@ const ChatTab: React.FC = () => {
     if (text.startsWith('/plan')) return 'Planned: outline steps.';
     if (text.startsWith('/implement')) return 'Implementation steps drafted.';
     if (text.startsWith('/test')) return 'Test plan proposed.';
+    if (text.startsWith('/explain')) return 'Explanation: terse overview provided.';
+    if (text.startsWith('/hint')) return 'Hint: consider edge cases and constraints.';
+    if (text.startsWith('/complexity')) return 'Complexity: roughly O(n log n) or similar.';
     return null;
   };
 

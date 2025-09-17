@@ -8,11 +8,24 @@ interface Props {
   inlineAutocompleteEnabled?: boolean;
   diagnostics?: Array<{ message: string; severity: 'error' | 'warning' | 'info'; startLine: number; startColumn: number; endLine: number; endColumn: number }>
   minimap?: boolean;
+  onReady?: (api: { revealPosition: (line: number, column: number) => void }) => void;
 }
 
-const EditorHost: React.FC<Props> = ({ value, language, onChange, inlineAutocompleteEnabled, diagnostics, minimap }) => {
+const EditorHost: React.FC<Props> = ({ value, language, onChange, inlineAutocompleteEnabled, diagnostics, minimap, onReady }) => {
   const editorRef = React.useRef<any>(null);
   const monacoRef = React.useRef<any>(null);
+
+  React.useEffect(() => {
+    if (!editorRef.current) return;
+    if (onReady) {
+      onReady({
+        revealPosition: (line, column) => {
+          try { editorRef.current.revealPositionInCenter({ lineNumber: line, column }); editorRef.current.setPosition({ lineNumber: line, column }); editorRef.current.focus(); } catch {}
+        }
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editorRef.current]);
 
   React.useEffect(() => {
     if (!editorRef.current || !monacoRef.current) return;

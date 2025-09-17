@@ -212,6 +212,16 @@ const App: React.FC = () => {
               inlineAutocompleteEnabled={!!prefs.ghostText}
               diagnostics={diagnostics}
               minimap={prefs.minimap}
+              onReady={({ revealPosition }) => {
+                registry.register({ id: 'go-to-line', title: 'Go to Line…', run: () => {
+                  const v = prompt('Line:Column');
+                  if (!v) return;
+                  const [lineStr, colStr] = v.split(':');
+                  const line = parseInt(lineStr || '1', 10);
+                  const col = parseInt(colStr || '1', 10);
+                  revealPosition(line, col);
+                }});
+              }}
             />
           </div>
         </main>
