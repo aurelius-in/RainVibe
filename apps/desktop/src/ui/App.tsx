@@ -97,8 +97,8 @@ const App: React.FC = () => {
     const len = (active?.content || '').length;
     return Math.min(100, (len / 4000) * 100);
   }, [active?.content]);
-    registry.register({ id: 'toggle-assistant', title: 'Toggle Assistant Panel', run: () => setAssistantOpen(v => !v) });
-    registry.register({ id: 'mode-basic', title: 'Switch Mode: Basic', run: () => setModes(['Basic'] as any) });
+    registry.register({ id: 'toggle-assistant', title: 'Toggle Assistant Panel', run: () => { setAssistantOpen(v => !v); try { (window as any).rainvibe?.appendAudit?.(JSON.stringify({ kind:'toggle_assistant', ts: Date.now() })+'\n'); } catch {} } });
+    registry.register({ id: 'mode-basic', title: 'Switch Mode: Basic', run: () => { setModes(['Basic'] as any); try { (window as any).rainvibe?.appendAudit?.(JSON.stringify({ kind:'switch_mode', mode:'Basic', ts: Date.now() })+'\n'); } catch {} } });
     registry.register({ id: 'toggle-policy', title: 'Toggle Policy-Safe', run: () => togglePolicy() });
     registry.register({ id: 'open-preferences', title: 'Open Preferences', run: () => setPrefsOpen(true) });
     registry.register({ id: 'open-about', title: 'Open About', run: () => setAboutOpen(true) });

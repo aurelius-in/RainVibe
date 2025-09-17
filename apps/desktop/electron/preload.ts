@@ -96,5 +96,16 @@ contextBridge.exposeInMainWorld('rainvibe', {
       return [];
     }
   }
+  ,
+  appendAudit(line: string): boolean {
+    try {
+      const p = path.join(repoRoot(), '.rainvibe', 'trails.jsonl');
+      fs.mkdirSync(path.dirname(p), { recursive: true });
+      fs.appendFileSync(p, line, 'utf8');
+      return true;
+    } catch {
+      return false;
+    }
+  }
 });
 
