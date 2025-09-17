@@ -37,12 +37,12 @@ const TopBar: React.FC<{ modes: string[]; onChange: (m: string[]) => void; onOpe
   );
 };
 
-const StatusBar: React.FC<{ modes: string[]; policyOn: boolean; auditCount: number; model: string; tokensPct: number }>= ({ modes, policyOn, auditCount, model, tokensPct }) => {
+const StatusBar: React.FC<{ modes: string[]; policyOn: boolean; policyCount: number; auditCount: number; model: string; tokensPct: number }>= ({ modes, policyOn, policyCount, auditCount, model, tokensPct }) => {
   return (
     <div className="h-6 text-xs px-3 flex items-center gap-4 border-t border-white/10 bg-black text-white/80">
       <span>model: {model}</span>
       <span>mode: {modes.join(' + ') || '—'}</span>
-      <span>policy: {policyOn ? 'on' : 'off'}</span>
+      <span>policy: {policyOn ? `on (${policyCount})` : 'off'}</span>
       <span>audit: {auditCount}</span>
       <span>tokens: {Math.min(100, Math.max(0, Math.round(tokensPct)))}%</span>
     </div>
@@ -70,6 +70,12 @@ const App: React.FC = () => {
   const [diffOriginal, setDiffOriginal] = React.useState('');
   const [diffModified, setDiffModified] = React.useState('');
   const [shortcutsOpen, setShortcutsOpen] = React.useState(false);
+  React.useEffect(() => {
+    try { document.title = `RainVibe — ${active?.path ?? ''}`; } catch {}
+  }, [active?.path]);
+  React.useEffect(() => {
+    try { localStorage.setItem('rainvibe.ui.assistantOpen', String(assistantOpen)); } catch {}
+  }, [assistantOpen]);
 
   React.useEffect(() => {
     // Simple diagnostics: mark lines containing TODO as warnings
@@ -125,6 +131,7 @@ const App: React.FC = () => {
         setModes(map[e.key] as any);
         e.preventDefault();
       }
+      if (e.key === 'Escape') { setBoardOpen(false); }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
@@ -183,7 +190,7 @@ const App: React.FC = () => {
           />
         </aside>
       </div>
-      <StatusBar modes={activeModes as any} policyOn={policy.enabled} auditCount={events.length} model={prefs.model} tokensPct={tokensPct} />
+      <StatusBar modes={activeModes as any} policyOn={policy.enabled} policyCount={(policy as any)?.ruleFiles?.length ?? 0} auditCount={events.length} model={prefs.model} tokensPct={tokensPct} />
       <ActionBoard
         open={boardOpen}
         onClose={() => setBoardOpen(false)}
