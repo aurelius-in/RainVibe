@@ -12,6 +12,7 @@ import { usePolicy } from './state/usePolicy';
 import { useAuditLog } from './state/useAuditLog';
 import { exportHTML, exportJSONL, exportPDF } from '@rainvibe/audit/src/exports';
 import { registry } from './commands/registry';
+import { usePreferences } from './state/usePreferences';
 
 const TopBar: React.FC<{ modes: string[]; onChange: (m: string[]) => void; onOpenBoard: () => void; onToggleAssistant: () => void; }>
   = ({ modes, onChange, onOpenBoard, onToggleAssistant }) => {
@@ -49,6 +50,7 @@ const App: React.FC = () => {
   const { active: activeModes, update: setModes } = useModes();
   const { status: policy, toggle: togglePolicy } = usePolicy();
   const { events } = useAuditLog();
+  const { prefs } = usePreferences();
   const [assistantOpen, setAssistantOpen] = React.useState(true);
   const [boardOpen, setBoardOpen] = React.useState(false);
   const [prefsOpen, setPrefsOpen] = React.useState(false);
@@ -102,6 +104,7 @@ const App: React.FC = () => {
               value={active.content}
               language={active.language}
               onChange={(v) => update(active.id, v)}
+              inlineAutocompleteEnabled={!!prefs.ghostText}
             />
           </div>
         </main>

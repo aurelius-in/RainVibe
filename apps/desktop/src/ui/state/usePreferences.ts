@@ -4,11 +4,12 @@ export interface Preferences {
   provider: 'chatgpt' | 'anthropic' | 'azure' | 'local';
   model: string;
   offlineOnly: boolean;
+  ghostText?: boolean;
 }
 
 const KEY = 'rainvibe.preferences';
 const KEY_FIRST = 'rainvibe.firstRun';
-const DEFAULTS: Preferences = { provider: 'chatgpt', model: 'gpt-4o-mini', offlineOnly: false };
+const DEFAULTS: Preferences = { provider: 'chatgpt', model: 'gpt-4o-mini', offlineOnly: false, ghostText: true };
 
 export function usePreferences() {
   const [prefs, setPrefs] = React.useState<Preferences>(() => {

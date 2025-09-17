@@ -28,6 +28,10 @@ const PreferencesModal: React.FC<Props> = ({ open, onClose }) => {
             <input type="checkbox" checked={local.offlineOnly} onChange={(e) => setLocal({ ...local, offlineOnly: e.target.checked })} />
             <span>Offline-only mode</span>
           </label>
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={!!local.ghostText} onChange={(e) => setLocal({ ...local, ghostText: e.target.checked })} />
+            <span>Inline ghost text</span>
+          </label>
         </div>
         <div className="mt-4 flex justify-end gap-2">
           <button onClick={onClose} className="px-3 py-1 border border-white/15 rounded hover:bg-white/10">Cancel</button>
