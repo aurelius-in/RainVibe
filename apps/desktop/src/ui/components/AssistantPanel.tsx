@@ -1,4 +1,5 @@
 import React from 'react';
+import ChatTab from './ChatTab';
 
 type Tab = 'Chat' | 'Tasks' | 'Modes' | 'Trails' | 'Run' | 'Diagnostics' | 'Changes' | 'Kits';
 
@@ -22,7 +23,7 @@ const AssistantPanel: React.FC<Props> = ({ open, audit }) => {
         ))}
       </div>
       <div className="flex-1 p-2 text-xs opacity-80">
-        {tab === 'Chat' && <div>Chat coming soon.</div>}
+        {tab === 'Chat' && <ChatTab />}
         {tab === 'Tasks' && <div>Tasks and Flows coming soon.</div>}
         {tab === 'Modes' && <div>Toggle and configure Modes here.</div>}
         {tab === 'Trails' && (

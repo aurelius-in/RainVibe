@@ -5,6 +5,7 @@ files:
 asar: true
 directories:
   output: release
+artifactName: "RainVibe-${version}-${os}-${arch}.${ext}"
 mac:
   target:
     - dmg
