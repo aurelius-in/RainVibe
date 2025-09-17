@@ -58,6 +58,27 @@ contextBridge.exposeInMainWorld('rainvibe', {
     } catch {
       return [];
     }
+  },
+  readTextFile(relPath: string): string | null {
+    try {
+      const abs = path.resolve(repoRoot(), relPath);
+      if (!abs.startsWith(repoRoot())) return null;
+      if (!fs.existsSync(abs) || fs.statSync(abs).isDirectory()) return null;
+      return fs.readFileSync(abs, 'utf8');
+    } catch {
+      return null;
+    }
+  },
+  writeTextFile(relPath: string, contents: string): boolean {
+    try {
+      const abs = path.resolve(repoRoot(), relPath);
+      if (!abs.startsWith(repoRoot())) return false;
+      fs.mkdirSync(path.dirname(abs), { recursive: true });
+      fs.writeFileSync(abs, contents, 'utf8');
+      return true;
+    } catch {
+      return false;
+    }
   }
 });
 

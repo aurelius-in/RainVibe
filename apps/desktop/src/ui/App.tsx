@@ -9,6 +9,7 @@ import PreferencesModal from './components/PreferencesModal';
 import AboutModal from './components/AboutModal';
 import WorkspaceTree from './components/WorkspaceTree';
 import SearchPanel from './components/SearchPanel';
+import EditorTabs from './components/EditorTabs';
 import { usePolicy } from './state/usePolicy';
 import { useAuditLog } from './state/useAuditLog';
 import { exportHTML, exportJSONL, exportPDF } from '@rainvibe/audit/src/exports';
@@ -16,6 +17,7 @@ import { registry } from './commands/registry';
 import { usePreferences } from './state/usePreferences';
 import FirstRunModal, { shouldShowFirstRun } from './components/FirstRunModal';
 import DiffPatchPreview from './components/DiffPatchPreview';
+import ShortcutsModal from './components/ShortcutsModal';
 
 const TopBar: React.FC<{ modes: string[]; onChange: (m: string[]) => void; onOpenBoard: () => void; onToggleAssistant: () => void; }>
   = ({ modes, onChange, onOpenBoard, onToggleAssistant }) => {
@@ -48,7 +50,7 @@ const StatusBar: React.FC<{ modes: string[]; policyOn: boolean; auditCount: numb
 };
 
 const App: React.FC = () => {
-  const { buffers, activeId, update } = useBuffers();
+  const { buffers, activeId, update, save, newBuffer } = useBuffers();
   const active = buffers.find(b => b.id === activeId) ?? buffers[0];
   const { active: activeModes, update: setModes } = useModes();
   const { status: policy, toggle: togglePolicy } = usePolicy();
@@ -63,6 +65,7 @@ const App: React.FC = () => {
   const [showDiff, setShowDiff] = React.useState(false);
   const [diffOriginal, setDiffOriginal] = React.useState('');
   const [diffModified, setDiffModified] = React.useState('');
+  const [shortcutsOpen, setShortcutsOpen] = React.useState(false);
 
   React.useEffect(() => {
     // Simple diagnostics: mark lines containing TODO as warnings
@@ -90,6 +93,9 @@ const App: React.FC = () => {
     }});
     registry.register({ id: 'left-rail-workspace', title: 'Show Workspace', run: () => setLeftRail('workspace') });
     registry.register({ id: 'left-rail-search', title: 'Show Search', run: () => setLeftRail('search') });
+    registry.register({ id: 'new-buffer', title: 'New Buffer', run: () => newBuffer() });
+    registry.register({ id: 'save-buffer', title: 'Save Buffer', run: () => save(activeId) });
+    registry.register({ id: 'open-shortcuts', title: 'Open Shortcuts', run: () => setShortcutsOpen(true) });
   }, [setModes, togglePolicy]);
 
   React.useEffect(() => {
@@ -97,6 +103,7 @@ const App: React.FC = () => {
       const meta = e.ctrlKey || e.metaKey;
       if (meta && e.key.toLowerCase() === 'i') { setAssistantOpen(v => !v); e.preventDefault(); }
       if (meta && e.key.toLowerCase() === 'k') { setBoardOpen(true); e.preventDefault(); }
+      if (meta && e.key.toLowerCase() === 's') { save(activeId); e.preventDefault(); }
       if (meta && e.shiftKey && e.key === 'Enter') {
         setDiffOriginal(active?.content || '');
         setDiffModified((active?.content || '') + '\n// TODO: refine');
@@ -138,6 +145,7 @@ const App: React.FC = () => {
         </aside>
         <main className="p-0">
           <div className="h-full w-full bg-black">
+            <EditorTabs />
             <EditorHost
               value={active.content}
               language={active.language}
@@ -180,6 +188,7 @@ const App: React.FC = () => {
       <PreferencesModal open={prefsOpen} onClose={() => setPrefsOpen(false)} />
       <AboutModal open={aboutOpen} onClose={() => setAboutOpen(false)} />
       <FirstRunModal open={firstOpen} onClose={() => setFirstOpen(false)} onOpenPreferences={() => setPrefsOpen(true)} />
+      <ShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
     </div>
   );
 };
