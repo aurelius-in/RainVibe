@@ -1,6 +1,7 @@
 import React from 'react';
 import ModeToggle from './components/ModeToggle';
 import EditorHost from './editor/EditorHost';
+import { useBuffers } from './state/useBuffers';
 
 const TopBar: React.FC = () => {
   return (
@@ -30,6 +31,8 @@ const StatusBar: React.FC = () => {
 };
 
 const App: React.FC = () => {
+  const { buffers, activeId, update } = useBuffers();
+  const active = buffers.find(b => b.id === activeId) ?? buffers[0];
   return (
     <div className="h-full w-full flex flex-col bg-black text-white">
       <TopBar />
@@ -40,7 +43,11 @@ const App: React.FC = () => {
         </aside>
         <main className="p-0">
           <div className="h-full w-full bg-black">
-            <EditorHost value={""} language="typescript" onChange={() => {}} />
+            <EditorHost
+              value={active.content}
+              language={active.language}
+              onChange={(v) => update(active.id, v)}
+            />
           </div>
         </main>
         <aside className="border-l border-white/10 p-2">

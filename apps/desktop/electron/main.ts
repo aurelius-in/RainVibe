@@ -10,7 +10,7 @@ const createWindow = async () => {
     height: 800,
     backgroundColor: '#000000',
     webPreferences: {
-      preload: path.join(__dirname, 'preload.cjs'),
+      preload: path.join(__dirname, 'electron', 'preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
     },
