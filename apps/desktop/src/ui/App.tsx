@@ -70,6 +70,7 @@ const App: React.FC = () => {
   const [diffOriginal, setDiffOriginal] = React.useState('');
   const [diffModified, setDiffModified] = React.useState('');
   const [shortcutsOpen, setShortcutsOpen] = React.useState(false);
+  const [diagnostics, setDiagnostics] = React.useState<Array<{ message: string; severity: 'error' | 'warning' | 'info'; startLine: number; startColumn: number; endLine: number; endColumn: number }>>([]);
   React.useEffect(() => {
     try { document.title = `RainVibe — ${active?.path ?? ''}`; } catch {}
   }, [active?.path]);
@@ -78,9 +79,18 @@ const App: React.FC = () => {
   }, [assistantOpen]);
 
   React.useEffect(() => {
-    // Simple diagnostics: mark lines containing TODO as warnings
-    const lines = (active?.content || '').split('\n');
-    // We can't set diagnostics state here without importing it above; leaving as a stub for now
+    // Simple diagnostics: mark TODO as warning, FIXME as error
+    const source = active?.content || '';
+    const lines = source.split('\n');
+    const next: Array<{ message: string; severity: 'error' | 'warning' | 'info'; startLine: number; startColumn: number; endLine: number; endColumn: number }> = [];
+    lines.forEach((line, idx) => {
+      if (line.includes('FIXME')) {
+        next.push({ message: 'Contains FIXME', severity: 'error', startLine: idx + 1, startColumn: 1, endLine: idx + 1, endColumn: Math.max(1, line.length) });
+      } else if (line.includes('TODO')) {
+        next.push({ message: 'Contains TODO', severity: 'warning', startLine: idx + 1, startColumn: 1, endLine: idx + 1, endColumn: Math.max(1, line.length) });
+      }
+    });
+    setDiagnostics(next);
   }, [active?.content]);
 
   const tokensPct = React.useMemo(() => {
@@ -170,14 +180,14 @@ const App: React.FC = () => {
               language={active.language}
               onChange={(v) => update(active.id, v)}
               inlineAutocompleteEnabled={!!prefs.ghostText}
-              diagnostics={[]}
+              diagnostics={diagnostics}
             />
           </div>
         </main>
         <aside className="border-l border-white/10 p-0">
           <AssistantPanel
             open={assistantOpen}
-            diagnostics={[]}
+            diagnostics={diagnostics.map(d => ({ message: d.message, severity: d.severity }))}
             audit={{
               events: events as any,
               onExport: (fmt) => {
