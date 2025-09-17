@@ -5,6 +5,7 @@ import { useBuffers } from './state/useBuffers';
 import { useModes } from './state/useModes';
 import AssistantPanel from './components/AssistantPanel';
 import ActionBoard from './components/ActionBoard';
+import PreferencesModal from './components/PreferencesModal';
 
 const TopBar: React.FC<{ modes: string[]; onChange: (m: string[]) => void; onOpenBoard: () => void; onToggleAssistant: () => void; }>
   = ({ modes, onChange, onOpenBoard, onToggleAssistant }) => {
@@ -42,6 +43,7 @@ const App: React.FC = () => {
   const { active: activeModes, update: setModes } = useModes();
   const [assistantOpen, setAssistantOpen] = React.useState(true);
   const [boardOpen, setBoardOpen] = React.useState(false);
+  const [prefsOpen, setPrefsOpen] = React.useState(false);
   return (
     <div className="h-full w-full flex flex-col bg-black text-white">
       <TopBar
@@ -75,8 +77,10 @@ const App: React.FC = () => {
         commands={[
           { id: 'toggle-assistant', title: 'Toggle Assistant Panel', run: () => setAssistantOpen(v => !v) },
           { id: 'mode-basic', title: 'Switch Mode: Basic', run: () => setModes(['Basic'] as any) },
+          { id: 'open-preferences', title: 'Open Preferences', run: () => setPrefsOpen(true) },
         ]}
       />
+      <PreferencesModal open={prefsOpen} onClose={() => setPrefsOpen(false)} />
     </div>
   );
 };
