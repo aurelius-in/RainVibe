@@ -113,6 +113,23 @@ const App: React.FC = () => {
     }});
     registry.register({ id: 'left-rail-workspace', title: 'Show Workspace', run: () => setLeftRail('workspace') });
     registry.register({ id: 'left-rail-search', title: 'Show Search', run: () => setLeftRail('search') });
+    registry.register({ id: 'reveal-in-workspace', title: 'Reveal in Workspace', run: () => {
+      const name = active?.path?.split('/')?.pop() || '';
+      window.dispatchEvent(new CustomEvent('rainvibe:filter', { detail: name }));
+    }});
+    registry.register({ id: 'clear-workspace-filter', title: 'Clear Workspace Filter', run: () => {
+      window.dispatchEvent(new CustomEvent('rainvibe:filter', { detail: '' }));
+    }});
+    registry.register({ id: 'open-recent', title: 'Open Recent…', run: () => {
+      try {
+        const arr = JSON.parse(localStorage.getItem('rainvibe.recent') || '[]') as string[];
+        const choice = prompt('Recent files:\n' + arr.join('\n') + '\n\nEnter exact path to open:');
+        if (choice) open(choice);
+      } catch {}
+    }});
+    registry.register({ id: 'copy-path', title: 'Copy File Path', run: async () => {
+      try { await navigator.clipboard.writeText(active?.path || ''); } catch {}
+    }});
     registry.register({ id: 'new-buffer', title: 'New Buffer', run: () => newBuffer() });
     registry.register({ id: 'close-others', title: 'Close Other Tabs', run: () => { if (activeId) { const btns = document.querySelectorAll('div[role="tab"]'); /* placeholder */ } } });
     registry.register({ id: 'close-all', title: 'Close All Tabs', run: () => { const btns = document.querySelectorAll('div[role="tab"]'); /* placeholder */ } });

@@ -11,6 +11,15 @@ const WorkspaceTree: React.FC = () => {
   React.useEffect(() => {
     try { setEntries((window as any).rainvibe?.listDir?.() ?? []); } catch { setEntries([]); }
   }, []);
+  React.useEffect(() => {
+    const handler = (e: any) => {
+      const val = e?.detail ?? '';
+      setFilter(String(val));
+      try { localStorage.setItem('rainvibe.workspace.filter', String(val)); } catch {}
+    };
+    window.addEventListener('rainvibe:filter', handler as any);
+    return () => window.removeEventListener('rainvibe:filter', handler as any);
+  }, []);
   const filtered = entries.filter(e => e.name.toLowerCase().includes(filter.toLowerCase()));
   const { open } = useBuffers();
   return (
