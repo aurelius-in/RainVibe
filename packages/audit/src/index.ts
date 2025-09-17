@@ -9,3 +9,5 @@ export function createAuditEvent(kind: string, meta?: Record<string, unknown>): 
   return { id: Math.random().toString(36).slice(2), ts: Date.now(), kind, meta };
 }
 
+export * from './exports';
+

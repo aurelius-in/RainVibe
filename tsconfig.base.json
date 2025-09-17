@@ -16,7 +16,10 @@
     "paths": {
       "@rainvibe/common": ["packages/common/src"],
       "@rainvibe/editor": ["packages/editor/src"],
-      "@rainvibe/ai": ["packages/ai/src"]
+      "@rainvibe/ai": ["packages/ai/src"],
+      "@rainvibe/audit": ["packages/audit/src"],
+      "@rainvibe/policy": ["packages/policy/src"],
+      "@rainvibe/indexer": ["packages/indexer/src"]
     }
   },
   "exclude": ["node_modules", "dist", "build", "out"]
