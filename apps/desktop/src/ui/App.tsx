@@ -50,7 +50,7 @@ const StatusBar: React.FC<{ modes: string[]; policyOn: boolean; policyCount: num
 };
 
 const App: React.FC = () => {
-  const { buffers, activeId, update, save, newBuffer } = useBuffers();
+  const { buffers, activeId, update, save, newBuffer, open } = useBuffers();
   const active = buffers.find(b => b.id === activeId) ?? buffers[0];
   const { active: activeModes, update: setModes } = useModes();
   const { status: policy, toggle: togglePolicy } = usePolicy();
@@ -106,6 +106,14 @@ const App: React.FC = () => {
     registry.register({ id: 'new-buffer', title: 'New Buffer', run: () => newBuffer() });
     registry.register({ id: 'save-buffer', title: 'Save Buffer', run: () => save(activeId) });
     registry.register({ id: 'open-shortcuts', title: 'Open Shortcuts', run: () => setShortcutsOpen(true) });
+    registry.register({ id: 'open-file', title: 'Open File…', run: () => {
+      const path = prompt('Enter relative path to open:');
+      if (path) open(path);
+    }});
+    registry.register({ id: 'generate-feature-report', title: 'Generate Feature Coverage Report', run: () => {
+      fetch('/scripts/feature-report.mjs').catch(() => {});
+      alert('Run `pnpm report` to generate FEATURE_COVERAGE.md');
+    }});
   }, [setModes, togglePolicy]);
 
   React.useEffect(() => {
