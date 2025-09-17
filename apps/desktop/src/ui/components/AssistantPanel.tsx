@@ -1,5 +1,6 @@
 import React from 'react';
 import ChatTab from './ChatTab';
+import RunConsole from './RunConsole';
 
 type Tab = 'Chat' | 'Tasks' | 'Modes' | 'Trails' | 'Run' | 'Diagnostics' | 'Changes' | 'Kits';
 
@@ -41,7 +42,7 @@ const AssistantPanel: React.FC<Props> = ({ open, audit }) => {
             </div>
           </div>
         )}
-        {tab === 'Run' && <div>Run Console stub. Execution wiring will come later.</div>}
+        {tab === 'Run' && <RunConsole />}
         {tab === 'Diagnostics' && <div>Diagnostics stub: problems will be shown here.</div>}
         {tab === 'Changes' && <div>Changes stub: source control changes will be shown here.</div>}
         {tab === 'Kits' && <div>Kits stub: installable add-ons will be shown here.</div>}
