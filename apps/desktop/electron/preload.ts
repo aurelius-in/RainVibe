@@ -1,4 +1,4 @@
-import { contextBridge } from 'electron';
+import { contextBridge, shell } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
 import { execSync } from 'node:child_process';
@@ -106,6 +106,15 @@ contextBridge.exposeInMainWorld('rainvibe', {
     } catch {
       return false;
     }
+  }
+  ,
+  revealInOS(relPath: string): boolean {
+    try {
+      const abs = path.resolve(repoRoot(), relPath);
+      if (!abs.startsWith(repoRoot())) return false;
+      shell.showItemInFolder(abs);
+      return true;
+    } catch { return false; }
   }
 });
 
