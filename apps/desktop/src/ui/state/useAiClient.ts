@@ -26,11 +26,15 @@ export function useAiClient() {
 
   return {
     chat: async (messages: AiMessage[]) => {
+      const systemHints: string[] = [];
+      if (modes.includes('Policy-Safe')) systemHints.push('Follow organization safety policies and avoid disallowed content.');
+      if (modes.includes('Compliance/Audit')) systemHints.push('Respond with traceable, auditable steps and cite file paths.');
+      const enriched = systemHints.length ? ([{ role: 'system', content: systemHints.join(' ') } as AiMessage, ...messages]) : messages;
       try {
-        const meta = { provider: prefs.provider, model: prefs.model, modes, ts: Date.now(), kind: 'ai_chat', direction: 'request', chars: messages.reduce((n, m) => n + (m.content?.length || 0), 0) };
-        (window as any).rainvibe?.appendAudit?.(JSON.stringify({ ...meta, messages: messages.map(m => ({ role: m.role, content: redactSecrets(m.content) })) })+'\n');
+        const meta = { provider: prefs.provider, model: prefs.model, modes, ts: Date.now(), kind: 'ai_chat', direction: 'request', chars: enriched.reduce((n, m) => n + (m.content?.length || 0), 0) };
+        (window as any).rainvibe?.appendAudit?.(JSON.stringify({ ...meta, messages: enriched.map(m => ({ role: m.role, content: redactSecrets(m.content) })) })+'\n');
       } catch {}
-      const reply = await providerRef.current.chat(messages);
+      const reply = await providerRef.current.chat(enriched);
       try {
         const meta = { provider: prefs.provider, model: prefs.model, modes, ts: Date.now(), kind: 'ai_chat', direction: 'response', chars: reply.length };
         (window as any).rainvibe?.appendAudit?.(JSON.stringify({ ...meta, content: redactSecrets(reply) })+'\n');

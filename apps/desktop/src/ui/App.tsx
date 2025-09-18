@@ -19,13 +19,13 @@ import FirstRunModal, { shouldShowFirstRun } from './components/FirstRunModal';
 import DiffPatchPreview from './components/DiffPatchPreview';
 import ShortcutsModal from './components/ShortcutsModal';
 
-const TopBar: React.FC<{ modes: string[]; onChange: (m: string[]) => void; onOpenBoard: () => void; onToggleAssistant: () => void; }>
-  = ({ modes, onChange, onOpenBoard, onToggleAssistant }) => {
+const TopBar: React.FC<{ modes: string[]; version?: string; onChange: (m: string[]) => void; onOpenBoard: () => void; onToggleAssistant: () => void; }>
+  = ({ modes, version, onChange, onOpenBoard, onToggleAssistant }) => {
   return (
     <div className="flex items-center justify-between px-3 h-10 border-b border-white/10 bg-black text-white">
       <div className="flex items-center gap-2">
         <div className="w-4 h-4 rounded-sm gradient-accent" />
-        <span className="font-semibold tracking-wide">RainVibe</span>
+        <span className="font-semibold tracking-wide">RainVibe{version ? ` v${version}` : ''}</span>
       </div>
       <div className="flex items-center gap-2 text-sm">
         <span className="opacity-70">Modes:</span>
@@ -48,13 +48,17 @@ const StatusBar: React.FC<{ modes: string[]; policyOn: boolean; policyCount: num
       <button onClick={onClickChanges} className="underline-offset-2 hover:underline">changes: {changesCount}</button>
       {typeof dirtyCount === 'number' && <span>dirty: {dirtyCount}</span>}
       {caret && <span>ln {caret.line}, col {caret.column}{language ? ` — ${language}` : ''}</span>}
-      {tokenMeter !== false && <button onClick={onClickTokens} className="underline-offset-2 hover:underline">tokens: {Math.min(100, Math.max(0, Math.round(tokensPct)))}%</button>}
+      {tokenMeter !== false && (
+        <button onClick={onClickTokens} className={`underline-offset-2 hover:underline ${tokensPct > 80 ? 'text-red-400' : tokensPct > 60 ? 'text-yellow-300' : ''}`}>
+          tokens: {Math.min(100, Math.max(0, Math.round(tokensPct)))}%
+        </button>
+      )}
     </div>
   );
 };
 
 const App: React.FC = () => {
-  const { buffers, activeId, update, save, newBuffer, open, closeOthers, closeAll, close } = useBuffers();
+  const { buffers, activeId, setActiveId, update, save, newBuffer, open, closeOthers, closeAll, close } = useBuffers();
   const active = buffers.find(b => b.id === activeId) ?? buffers[0];
   const { active: activeModes, update: setModes } = useModes();
   const { status: policy, toggle: togglePolicy } = usePolicy();
@@ -320,6 +324,7 @@ const App: React.FC = () => {
       if (meta && (!e.shiftKey) && e.key.toLowerCase() === 'p') { setBoardOpen(true); e.preventDefault(); }
       if (meta && e.shiftKey && e.key.toLowerCase() === 'p') { setBoardOpen(true); e.preventDefault(); }
       if (meta && e.key.toLowerCase() === 's') { save(activeId); e.preventDefault(); }
+      if (meta && e.shiftKey && e.key.toLowerCase() === 's') { try { buffers.forEach(b => { (window as any).rainvibe?.writeTextFile?.(b.path, b.content); }); } catch {}; e.preventDefault(); }
       if (meta && e.key.toLowerCase() === 'w') { // Close current
         if (e.shiftKey) { // Close others
           if (activeId) closeOthers(activeId);
@@ -330,6 +335,7 @@ const App: React.FC = () => {
         }
         e.preventDefault();
       }
+      if (e.key === 'F1') { setBoardOpen(true); e.preventDefault(); }
       if (meta && e.shiftKey && e.key === 'Enter') {
         setDiffOriginal(active?.content || '');
         setDiffModified((active?.content || '') + '\n// TODO: refine');
@@ -357,6 +363,7 @@ const App: React.FC = () => {
     <div className="h-full w-full flex flex-col bg-black text-white">
       <TopBar
         modes={activeModes as any}
+        version={(window as any).rainvibe?.version}
         onChange={(m) => setModes(m as any)}
         onOpenBoard={() => setBoardOpen(true)}
         onToggleAssistant={() => setAssistantOpen(v => !v)}
@@ -404,6 +411,13 @@ const App: React.FC = () => {
                 registry.register({ id: 'move-line-down', title: 'Move Line Down', run: () => trigger('editor.action.moveLinesDownAction') });
                 registry.register({ id: 'select-line', title: 'Select Line', run: () => trigger('expandLineSelection') });
                 registry.register({ id: 'copy-selection', title: 'Copy Selection', run: () => trigger('editor.action.clipboardCopyAction') });
+                registry.register({ id: 'trim-trailing-whitespace', title: 'Trim Trailing Whitespace', run: () => trigger('editor.action.trimTrailingWhitespace') });
+                registry.register({ id: 'duplicate-buffer', title: 'Duplicate Buffer as Untitled', run: () => {
+                  const name = `untitled-${Date.now()}.txt`;
+                  newBuffer(name);
+                  setActiveId(name);
+                  update(name, active?.content || '');
+                }});
               }}
               onCursorChange={(p) => setCaret(p)}
               onSelectionChange={(_text) => { /* no-op now */ }}

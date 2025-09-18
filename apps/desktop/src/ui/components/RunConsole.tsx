@@ -10,6 +10,7 @@ const RunConsole: React.FC = () => {
     const res = await simulateRun(cmd);
     setOut((prev) => prev + (prev ? '\n' : '') + res.output);
     setBusy(false);
+    try { (window as any).rainvibe?.appendAudit?.(JSON.stringify({ kind:'run', cmd, ts: Date.now(), bytes: res.output?.length || 0 })+'\n'); } catch {}
   };
   const onClear = () => setOut('');
   const onCopy = async () => { try { await navigator.clipboard.writeText(out); } catch {} };
