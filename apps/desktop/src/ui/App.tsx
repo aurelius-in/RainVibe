@@ -154,6 +154,30 @@ const App: React.FC = () => {
       const input = document.getElementById('flows-new') as HTMLInputElement | null;
       if (title && input) { input.value = title; const click = input.nextElementSibling as HTMLButtonElement | null; click?.click(); }
     }});
+    registry.register({ id: 'open-diagnostics-tab', title: 'Open Diagnostics Tab', run: () => {
+      window.dispatchEvent(new CustomEvent('rainvibe:assistantTab', { detail: 'Diagnostics' }));
+    }});
+    registry.register({ id: 'open-readme', title: 'Open README.md', run: () => {
+      try {
+        const ok = open('README.md');
+        if (!ok) {
+          const md = (window as any).rainvibe?.readReadme?.() as string | null;
+          if (md != null) {
+            const name = 'README.md';
+            (window as any).rainvibe?.writeTextFile?.(name, md);
+            open(name);
+          }
+        }
+      } catch {}
+    }});
+    registry.register({ id: 'new-file', title: 'New File…', run: () => {
+      const p = prompt('New file path (relative):');
+      if (!p) return;
+      try { (window as any).rainvibe?.writeTextFile?.(p, ''); open(p); } catch {}
+    }});
+    registry.register({ id: 'open-exports-folder', title: 'Open Exports Folder', run: () => {
+      try { (window as any).rainvibe?.revealInOS?.('.rainvibe/exports'); } catch {}
+    }});
   }, [setModes, togglePolicy]);
 
   React.useEffect(() => {
