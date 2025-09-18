@@ -83,7 +83,9 @@ const App: React.FC = () => {
   const [shortcutsOpen, setShortcutsOpen] = React.useState(false);
   const [caret, setCaret] = React.useState<{ line: number; column: number }>({ line: 1, column: 1 });
   const [diagnostics, setDiagnostics] = React.useState<Array<{ message: string; severity: 'error' | 'warning' | 'info'; startLine: number; startColumn: number; endLine: number; endColumn: number }>>([]);
-  const [diagnosticsVisible, setDiagnosticsVisible] = React.useState<boolean>(true);
+  const [diagnosticsVisible, setDiagnosticsVisible] = React.useState<boolean>(() => {
+    try { return localStorage.getItem('rainvibe.ui.diagnosticsVisible') !== 'false'; } catch { return true; }
+  });
   const [changesCount, setChangesCount] = React.useState<number>(0);
   const [branch, setBranch] = React.useState<string | null>(null);
   const dirtyCount = React.useMemo(() => buffers.filter(b => b.content !== (b.savedContent ?? '')).length, [buffers]);
@@ -102,6 +104,9 @@ const App: React.FC = () => {
   React.useEffect(() => {
     try { localStorage.setItem('rainvibe.ui.assistantOpen', String(assistantOpen)); } catch {}
   }, [assistantOpen]);
+  React.useEffect(() => {
+    try { localStorage.setItem('rainvibe.ui.diagnosticsVisible', String(diagnosticsVisible)); } catch {}
+  }, [diagnosticsVisible]);
 
   // Autosave debounce for active buffer
   React.useEffect(() => {
@@ -446,6 +451,8 @@ const App: React.FC = () => {
       const meta = e.ctrlKey || e.metaKey;
       if (meta && e.key.toLowerCase() === 'i') { setAssistantOpen(v => !v); e.preventDefault(); }
       if (meta && e.key.toLowerCase() === 'k') { setBoardOpen(true); e.preventDefault(); }
+      if (meta && e.key === ']') { const idx = buffers.findIndex(b => b.id === activeId); const next = buffers[(idx + 1) % buffers.length]; if (next) setActiveId(next.id); e.preventDefault(); }
+      if (meta && e.key === '[') { const idx = buffers.findIndex(b => b.id === activeId); const prev = buffers[(idx - 1 + buffers.length) % buffers.length]; if (prev) setActiveId(prev.id); e.preventDefault(); }
       if (meta && (!e.shiftKey) && e.key.toLowerCase() === 'p') { setBoardOpen(true); e.preventDefault(); }
       if (meta && e.shiftKey && e.key.toLowerCase() === 'p') { setBoardOpen(true); e.preventDefault(); }
       if (meta && e.key.toLowerCase() === 's') { save(activeId); e.preventDefault(); }
