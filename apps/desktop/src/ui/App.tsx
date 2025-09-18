@@ -367,6 +367,8 @@ const App: React.FC = () => {
                 registry.register({ id: 'delete-line', title: 'Delete Line', run: () => trigger('editor.action.deleteLines') });
                 registry.register({ id: 'move-line-up', title: 'Move Line Up', run: () => trigger('editor.action.moveLinesUpAction') });
                 registry.register({ id: 'move-line-down', title: 'Move Line Down', run: () => trigger('editor.action.moveLinesDownAction') });
+                registry.register({ id: 'select-line', title: 'Select Line', run: () => trigger('expandLineSelection') });
+                registry.register({ id: 'copy-selection', title: 'Copy Selection', run: () => trigger('editor.action.clipboardCopyAction') });
               }}
             />
           </div>
