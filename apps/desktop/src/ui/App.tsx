@@ -116,6 +116,7 @@ const App: React.FC = () => {
     registry.register({ id: 'reveal-in-workspace', title: 'Reveal in Workspace', run: () => {
       const name = active?.path?.split('/')?.pop() || '';
       window.dispatchEvent(new CustomEvent('rainvibe:filter', { detail: name }));
+      setLeftRail('workspace');
     }});
     registry.register({ id: 'clear-workspace-filter', title: 'Clear Workspace Filter', run: () => {
       window.dispatchEvent(new CustomEvent('rainvibe:filter', { detail: '' }));
@@ -193,6 +194,9 @@ const App: React.FC = () => {
     registry.register({ id: 'open-exports-folder', title: 'Open Exports Folder', run: () => {
       try { (window as any).rainvibe?.revealInOS?.('.rainvibe/exports'); } catch {}
     }});
+    registry.register({ id: 'open-org-folder', title: 'Open Org Pack Folder', run: () => {
+      try { (window as any).rainvibe?.revealInOS?.('.rainvibe'); } catch {}
+    }});
   }, [setModes, togglePolicy]);
 
   React.useEffect(() => {
@@ -261,6 +265,9 @@ const App: React.FC = () => {
                   revealPosition(line, col);
                 }});
                 registry.register({ id: 'format-document', title: 'Format Document', run: () => trigger('editor.action.formatDocument') });
+                registry.register({ id: 'find-in-file', title: 'Find in File…', run: () => trigger('actions.find') });
+                registry.register({ id: 'find-next', title: 'Find Next', run: () => trigger('editor.action.nextMatchFindAction') });
+                registry.register({ id: 'find-previous', title: 'Find Previous', run: () => trigger('editor.action.previousMatchFindAction') });
               }}
             />
           </div>
