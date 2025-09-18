@@ -33,6 +33,7 @@ const WorkspaceTree: React.FC = () => {
     <div className="h-full flex flex-col" onMouseDown={() => setMenu(null)}>
       <div className="flex items-center gap-2 mb-2">
         <button onClick={() => setCwd('')} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10 text-xs">Root</button>
+        {cwd && <button onClick={() => { const parts = cwd.split('/'); parts.pop(); setCwd(parts.join('/')); }} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10 text-xs">Up</button>}
         {cwd && <span className="text-xs opacity-70">{cwd}</span>}
       </div>
       <input placeholder="Search workspace" value={filter} onChange={(e) => { setFilter(e.target.value); try { localStorage.setItem('rainvibe.workspace.filter', e.target.value); } catch {} }} className="mb-2 px-2 py-1 bg-black text-white border border-white/15 rounded text-xs" />

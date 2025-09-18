@@ -155,6 +155,14 @@ const App: React.FC = () => {
       setChangesCount(entries.length);
       setBranch((window as any).rainvibe?.gitBranch?.() || null);
     } catch { setChangesCount(0); }
+    const id = setInterval(() => {
+      try {
+        const entries = (window as any).rainvibe?.gitStatus?.() || [];
+        setChangesCount(entries.length);
+        setBranch((window as any).rainvibe?.gitBranch?.() || null);
+      } catch {}
+    }, 10000);
+    return () => clearInterval(id);
   }, []);
     registry.register({ id: 'toggle-assistant', title: 'Toggle Assistant Panel', run: () => { setAssistantOpen(v => !v); try { (window as any).rainvibe?.appendAudit?.(JSON.stringify({ kind:'toggle_assistant', ts: Date.now() })+'\n'); } catch {} } });
     registry.register({ id: 'mode-basic', title: 'Switch Mode: Basic', run: () => { setModes(['Basic'] as any); try { (window as any).rainvibe?.appendAudit?.(JSON.stringify({ kind:'switch_mode', mode:'Basic', ts: Date.now() })+'\n'); } catch {} } });
@@ -169,8 +177,10 @@ const App: React.FC = () => {
       alert('Policy simulation: all checks passed (stub).');
     }});
     registry.register({ id: 'open-patch-preview', title: 'Open Patch Preview', run: () => {
-      setDiffOriginal(active?.content || '');
-      setDiffModified((active?.content || '') + '\n// TODO: refine');
+      const orig = active?.savedContent ?? active?.content ?? '';
+      const mod = active?.content ?? '';
+      setDiffOriginal(orig);
+      setDiffModified(mod);
       setShowDiff(true);
     }});
     registry.register({ id: 'left-rail-workspace', title: 'Show Workspace', run: () => setLeftRail('workspace') });
@@ -210,7 +220,16 @@ const App: React.FC = () => {
     registry.register({ id: 'close-buffer', title: 'Close Current Tab', run: () => { if (activeId) close(activeId); } });
     registry.register({ id: 'close-others', title: 'Close Other Tabs', run: () => { if (activeId) closeOthers(activeId); } });
     registry.register({ id: 'close-all', title: 'Close All Tabs', run: () => { closeAll(); } });
-    registry.register({ id: 'save-buffer', title: 'Save Buffer', run: () => { if (prefs.formatOnSave) { try { (document.activeElement as any)?.blur?.(); } catch {} /* formatting handled by editor action */ } save(activeId); try { (window as any).rainvibe?.appendAudit?.(JSON.stringify({ kind:'save', path: active?.path, ts: Date.now() })+'\n'); } catch {} } });
+    registry.register({ id: 'save-buffer', title: 'Save Buffer', run: async () => {
+      try {
+        if (prefs.formatOnSave) {
+          const fmt = registry.get('format-document');
+          await fmt?.run();
+        }
+      } catch {}
+      save(activeId);
+      try { (window as any).rainvibe?.appendAudit?.(JSON.stringify({ kind:'save', path: active?.path, ts: Date.now() })+'\n'); } catch {}
+    } });
     registry.register({ id: 'save-all', title: 'Save All Buffers', run: () => { try { buffers.forEach(b => { (window as any).rainvibe?.writeTextFile?.(b.path, b.content); }); } catch {} } });
     registry.register({ id: 'open-shortcuts', title: 'Open Shortcuts', run: () => setShortcutsOpen(true) });
     registry.register({ id: 'toggle-minimap', title: 'Toggle Minimap', run: () => {
@@ -321,6 +340,20 @@ const App: React.FC = () => {
     }});
     registry.register({ id: 'open-external', title: 'Open Current File Externally', run: () => { if (active?.path) { try { (window as any).rainvibe?.openPath?.(active.path); } catch {} } }});
     registry.register({ id: 'refresh-branch', title: 'Refresh Git Branch', run: () => { try { setBranch((window as any).rainvibe?.gitBranch?.() || null); } catch {} } });
+    registry.register({ id: 'open-containing-folder', title: 'Open Containing Folder', run: () => {
+      if (!active?.path) return;
+      try { const parts = (active.path || '').split('/'); parts.pop(); const dir = parts.join('/') || '.'; (window as any).rainvibe?.revealInOS?.(dir); } catch {}
+    }});
+    registry.register({ id: 'quick-outline', title: 'Quick Outline', run: () => {
+      try {
+        const src = active?.content || '';
+        const lines = src.split('\n');
+        const items: string[] = [];
+        const rx = /(class\s+\w+|function\s+\w+|const\s+\w+\s*=\s*\(|export\s+(?:default\s+)?class|export\s+function\s+\w+)/;
+        lines.forEach((ln, i) => { if (rx.test(ln)) items.push(`${i+1}: ${ln.trim()}`); });
+        alert(items.join('\n') || 'No symbols found');
+      } catch { alert('No symbols found'); }
+    }});
     registry.register({ id: 'open-chat-tab', title: 'Open Chat Tab', run: () => {
       window.dispatchEvent(new CustomEvent('rainvibe:assistantTab', { detail: 'Chat' }));
     }});
