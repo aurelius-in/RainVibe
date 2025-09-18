@@ -49,7 +49,7 @@ const SearchPanel: React.FC = () => {
       </div>
       <div className="space-y-1 overflow-auto">
         {results.map(r => (
-          <button key={r.path} onClick={() => open(r.path)} className="w-full text-left px-2 py-1 border border-white/10 rounded hover:bg-white/10">
+          <button key={r.path} onClick={() => { open(r.path); if (r.line) { window.dispatchEvent(new CustomEvent('rainvibe:goto', { detail: { line: r.line, col: 1 } } as any)); } }} className="w-full text-left px-2 py-1 border border-white/10 rounded hover:bg-white/10">
             <div>{r.path}{r.line ? `:${r.line}` : ''}</div>
             {r.preview && <div className="opacity-60 text-[10px] truncate">{r.preview}</div>}
           </button>
