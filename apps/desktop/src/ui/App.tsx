@@ -50,7 +50,7 @@ const StatusBar: React.FC<{ modes: string[]; policyOn: boolean; policyCount: num
 };
 
 const App: React.FC = () => {
-  const { buffers, activeId, update, save, newBuffer, open, closeOthers, closeAll } = useBuffers();
+  const { buffers, activeId, update, save, newBuffer, open, closeOthers, closeAll, close } = useBuffers();
   const active = buffers.find(b => b.id === activeId) ?? buffers[0];
   const { active: activeModes, update: setModes } = useModes();
   const { status: policy, toggle: togglePolicy } = usePolicy();
@@ -132,9 +132,11 @@ const App: React.FC = () => {
       try { await navigator.clipboard.writeText(active?.path || ''); } catch {}
     }});
     registry.register({ id: 'new-buffer', title: 'New Buffer', run: () => newBuffer() });
+    registry.register({ id: 'close-buffer', title: 'Close Current Tab', run: () => { if (activeId) close(activeId); } });
     registry.register({ id: 'close-others', title: 'Close Other Tabs', run: () => { if (activeId) closeOthers(activeId); } });
     registry.register({ id: 'close-all', title: 'Close All Tabs', run: () => { closeAll(); } });
     registry.register({ id: 'save-buffer', title: 'Save Buffer', run: () => { save(activeId); try { (window as any).rainvibe?.appendAudit?.(JSON.stringify({ kind:'save', path: active?.path, ts: Date.now() })+'\n'); } catch {} } });
+    registry.register({ id: 'save-all', title: 'Save All Buffers', run: () => { try { buffers.forEach(b => { (window as any).rainvibe?.writeTextFile?.(b.path, b.content); }); } catch {} } });
     registry.register({ id: 'open-shortcuts', title: 'Open Shortcuts', run: () => setShortcutsOpen(true) });
     registry.register({ id: 'toggle-minimap', title: 'Toggle Minimap', run: () => {
       try { save({ ...prefs, minimap: !prefs.minimap }); } catch {}
