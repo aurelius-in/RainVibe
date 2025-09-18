@@ -22,6 +22,15 @@ const SearchPanel: React.FC = () => {
       setResults(hits);
     } catch { setResults([]); }
   };
+  React.useEffect(() => {
+    const handler = (e: any) => {
+      const val = String(e?.detail || '');
+      setQ(val);
+      setTimeout(() => onSearch(), 0);
+    };
+    window.addEventListener('rainvibe:search', handler as any);
+    return () => window.removeEventListener('rainvibe:search', handler as any);
+  }, []);
   return (
     <div className="h-full flex flex-col text-xs">
       <div className="flex gap-2 mb-2">
