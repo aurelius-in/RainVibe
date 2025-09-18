@@ -27,7 +27,13 @@ const WorkspaceTree: React.FC = () => {
       <input placeholder="Search workspace" value={filter} onChange={(e) => { setFilter(e.target.value); try { localStorage.setItem('rainvibe.workspace.filter', e.target.value); } catch {} }} className="mb-2 px-2 py-1 bg-black text-white border border-white/15 rounded text-xs" />
       <div className="text-xs space-y-1 overflow-auto">
         {filtered.map(e => (
-          <div key={e.path} onClick={() => !e.isDir && open(e.path)} className="flex items-center gap-2 px-2 py-1 hover:bg-white/10 rounded cursor-pointer">
+          <div
+            key={e.path}
+            onClick={() => !e.isDir && open(e.path)}
+            onContextMenu={(ev) => { ev.preventDefault(); try { (window as any).rainvibe?.revealInOS?.(e.path); } catch {} }}
+            className="flex items-center gap-2 px-2 py-1 hover:bg-white/10 rounded cursor-pointer"
+            title={e.path}
+          >
             <span className="opacity-60">{e.isDir ? '📁' : '📄'}</span>
             <span>{e.name}</span>
           </div>
