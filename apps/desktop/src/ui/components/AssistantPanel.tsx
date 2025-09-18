@@ -127,7 +127,17 @@ const AssistantPanel: React.FC<Props> = ({ open, audit, diagnostics, onOpenPath,
             </div>
           </div>
         )}
-        {tab === 'Kits' && <div>Kits stub: installable add-ons will be shown here.</div>}
+        {tab === 'Kits' && (
+          <div className="space-y-1">
+            {(() => {
+              try {
+                const kits = (window as any).rainvibe?.listKits?.() || [];
+                if (!kits.length) return <div className="opacity-60 text-xs">No kits installed</div>;
+                return kits.map((k: string) => <div key={k} className="border border-white/10 rounded px-2 py-1 text-xs">{k}</div>);
+              } catch { return <div className="opacity-60 text-xs">No kits installed</div>; }
+            })()}
+          </div>
+        )}
         {tab === 'Navigation' && (
           <div className="space-y-1">
             <div className="opacity-70 text-xs mb-1">Imports in active file</div>

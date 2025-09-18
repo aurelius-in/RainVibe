@@ -4,14 +4,15 @@ import { useBuffers } from '../state/useBuffers';
 interface Entry { path: string; name: string; isDir: boolean }
 
 const WorkspaceTree: React.FC = () => {
+  const [cwd, setCwd] = React.useState<string>('');
   const [filter, setFilter] = React.useState<string>(() => {
     try { return localStorage.getItem('rainvibe.workspace.filter') || ''; } catch { return ''; }
   });
   const [entries, setEntries] = React.useState<Entry[]>([]);
   const [menu, setMenu] = React.useState<{ x: number; y: number; entry?: Entry } | null>(null);
   React.useEffect(() => {
-    try { setEntries((window as any).rainvibe?.listDir?.() ?? []); } catch { setEntries([]); }
-  }, []);
+    try { setEntries((window as any).rainvibe?.listDir?.(cwd) ?? []); } catch { setEntries([]); }
+  }, [cwd]);
   React.useEffect(() => {
     const handler = (e: any) => {
       const val = e?.detail ?? '';
@@ -26,10 +27,14 @@ const WorkspaceTree: React.FC = () => {
   const filtered = entries.filter(e => e.name.toLowerCase().includes(filter.toLowerCase()) || e.path.toLowerCase().includes(filter.toLowerCase()));
   const { open } = useBuffers();
   const refresh = () => {
-    try { setEntries((window as any).rainvibe?.listDir?.() ?? []); } catch { setEntries([]); }
+    try { setEntries((window as any).rainvibe?.listDir?.(cwd) ?? []); } catch { setEntries([]); }
   };
   return (
     <div className="h-full flex flex-col" onMouseDown={() => setMenu(null)}>
+      <div className="flex items-center gap-2 mb-2">
+        <button onClick={() => setCwd('')} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10 text-xs">Root</button>
+        {cwd && <span className="text-xs opacity-70">{cwd}</span>}
+      </div>
       <input placeholder="Search workspace" value={filter} onChange={(e) => { setFilter(e.target.value); try { localStorage.setItem('rainvibe.workspace.filter', e.target.value); } catch {} }} className="mb-2 px-2 py-1 bg-black text-white border border-white/15 rounded text-xs" />
       <div className="text-xs space-y-1 overflow-auto" onKeyDown={(e) => {
         if (e.key === 'Enter' && menu?.entry && !menu.entry.isDir) { open(menu.entry.path); }
@@ -38,6 +43,7 @@ const WorkspaceTree: React.FC = () => {
         {filtered.map(e => (
           <div
             key={e.path}
+            onDoubleClick={() => { if (e.isDir) setCwd(e.path); else open(e.path); }}
             onClick={() => !e.isDir && open(e.path)}
             onContextMenu={(ev) => { ev.preventDefault(); setMenu({ x: ev.clientX, y: ev.clientY, entry: e }); }}
             className="flex items-center gap-2 px-2 py-1 hover:bg-white/10 rounded cursor-pointer"

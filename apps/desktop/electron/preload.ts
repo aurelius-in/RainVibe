@@ -110,6 +110,14 @@ contextBridge.exposeInMainWorld('rainvibe', {
     }
   }
   ,
+  gitBranch(): string | null {
+    try {
+      const root = repoRoot();
+      const out = execSync('git rev-parse --abbrev-ref HEAD', { cwd: root, stdio: ['ignore', 'pipe', 'ignore'] }).toString('utf8');
+      return out.trim();
+    } catch { return null; }
+  }
+  ,
   appendAudit(line: string): boolean {
     try {
       const p = path.join(repoRoot(), '.rainvibe', 'trails.jsonl');
@@ -130,6 +138,15 @@ contextBridge.exposeInMainWorld('rainvibe', {
     } catch { return false; }
   }
   ,
+  openPath(relPath: string): boolean {
+    try {
+      const abs = path.resolve(repoRoot(), relPath);
+      if (!abs.startsWith(repoRoot())) return false;
+      const res = shell.openPath(abs);
+      return !!res;
+    } catch { return false; }
+  }
+  ,
   mkdir(relPath: string): boolean {
     try {
       const abs = path.resolve(repoRoot(), relPath);
@@ -137,6 +154,14 @@ contextBridge.exposeInMainWorld('rainvibe', {
       fs.mkdirSync(abs, { recursive: true });
       return true;
     } catch { return false; }
+  }
+  ,
+  listKits(): string[] {
+    try {
+      const dir = path.join(repoRoot(), '.rainvibe', 'kits');
+      if (!fs.existsSync(dir)) return [];
+      return fs.readdirSync(dir).filter(Boolean);
+    } catch { return []; }
   }
   ,
   renamePath(fromRel: string, toRel: string): boolean {
