@@ -37,18 +37,19 @@ const TopBar: React.FC<{ modes: string[]; version?: string; onChange: (m: string
   );
 };
 
-const StatusBar: React.FC<{ modes: string[]; policyOn: boolean; policyCount: number; auditCount: number; changesCount: number; dirtyCount?: number; caret?: { line: number; column: number }; language?: string; model: string; provider: string; branch?: string | null; offline: boolean; tokensPct: number; tokenMeter?: boolean; onClickPolicy?: () => void; onClickAudit?: () => void; onClickModel?: () => void; onClickChanges?: () => void; onClickTokens?: () => void }>= ({ modes, policyOn, policyCount, auditCount, changesCount, dirtyCount, caret, language, model, provider, branch, offline, tokensPct, tokenMeter, onClickPolicy, onClickAudit, onClickModel, onClickChanges, onClickTokens }) => {
+const StatusBar: React.FC<{ modes: string[]; policyOn: boolean; policyCount: number; auditCount: number; changesCount: number; dirtyCount?: number; caret?: { line: number; column: number }; language?: string; model: string; provider: string; branch?: string | null; offline: boolean; tokensPct: number; tokenMeter?: boolean; onClickPolicy?: () => void; onClickAudit?: () => void; onClickModel?: () => void; onClickChanges?: () => void; onClickTokens?: () => void; onClickBranch?: () => void }>= ({ modes, policyOn, policyCount, auditCount, changesCount, dirtyCount, caret, language, model, provider, branch, offline, tokensPct, tokenMeter, onClickPolicy, onClickAudit, onClickModel, onClickChanges, onClickTokens, onClickBranch }) => {
   return (
     <div className="h-6 text-xs px-3 flex items-center gap-4 border-t border-white/10 bg-black text-white/80">
       <button onClick={onClickModel} className="underline-offset-2 hover:underline">model: {model}</button>
       <span>provider: {provider}{offline ? ' (offline)' : ''}</span>
-      {branch && <span>branch: {branch}</span>}
+      {branch && <button onClick={onClickBranch} className="underline-offset-2 hover:underline">branch: {branch}</button>}
       <span>mode: {modes.join(' + ') || '—'}</span>
       <button onClick={onClickPolicy} className="underline-offset-2 hover:underline">policy: {policyOn ? `on (${policyCount})` : 'off'}</button>
       <button onClick={onClickAudit} className="underline-offset-2 hover:underline">audit: {auditCount}</button>
       <button onClick={onClickChanges} className="underline-offset-2 hover:underline">changes: {changesCount}</button>
       {typeof dirtyCount === 'number' && <span>dirty: {dirtyCount}</span>}
       {caret && <span>ln {caret.line}, col {caret.column}{language ? ` — ${language}` : ''}</span>}
+      <span>UTF-8 LF</span>
       {tokenMeter !== false && (
         <button onClick={onClickTokens} className={`underline-offset-2 hover:underline ${tokensPct > 80 ? 'text-red-400' : tokensPct > 60 ? 'text-yellow-300' : ''}`}>
           tokens: {Math.min(100, Math.max(0, Math.round(tokensPct)))}%
@@ -506,6 +507,7 @@ const App: React.FC = () => {
         onClickModel={() => setPrefsOpen(true)}
         onClickChanges={() => window.dispatchEvent(new CustomEvent('rainvibe:assistantTab', { detail: 'Changes' }))}
         onClickTokens={() => setPrefsOpen(true)}
+        onClickBranch={() => { try { setBranch((window as any).rainvibe?.gitBranch?.() || null); } catch {} }}
       />
       <ActionBoard
         open={boardOpen}
