@@ -331,8 +331,8 @@ const App: React.FC = () => {
                 registry.register({ id: 'indent-line', title: 'Indent Line', run: () => trigger('editor.action.indentLines') });
                 registry.register({ id: 'outdent-line', title: 'Outdent Line', run: () => trigger('editor.action.outdentLines') });
                 registry.register({ id: 'go-to-matching-bracket', title: 'Go to Matching Bracket', run: () => trigger('editor.action.jumpToBracket') });
-    registry.register({ id: 'copy-selection-md', title: 'Copy Selection as Markdown', run: async () => {
-      try { const sel = window.getSelection?.()?.toString?.() || ''; if (sel) await navigator.clipboard.writeText('```\n' + sel + '\n```'); } catch {}
+                registry.register({ id: 'copy-selection-md', title: 'Copy Selection as Markdown', run: async () => {
+      try { const sel = window.getSelection?.()?.toString?.() || ''; if (sel) await navigator.clipboard.writeText('```' + (active?.language || '') + "\n" + sel + "\n```"); } catch {}
     }});
     registry.register({ id: 'open-welcome', title: 'Open Welcome Buffer', run: () => open('WELCOME.ts') });
     registry.register({ id: 'open-file', title: 'Open File…', run: () => {
