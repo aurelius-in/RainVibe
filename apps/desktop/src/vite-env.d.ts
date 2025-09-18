@@ -8,6 +8,7 @@ declare global {
       policyFiles?: () => string[];
       readReadme?: () => string | null;
       listDir?: (dir?: string) => { path: string; name: string; isDir: boolean }[];
+      searchText?: (term: string, dir?: string) => { path: string; line: number; preview: string }[];
       gitStatus?: () => { status: string; path: string }[];
       gitBranch?: () => string | null;
       appendAudit?: (line: string) => boolean;

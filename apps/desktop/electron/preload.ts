@@ -82,6 +82,36 @@ contextBridge.exposeInMainWorld('rainvibe', {
     }
   }
   ,
+  searchText(term: string, dir?: string): { path: string; line: number; preview: string }[] {
+    try {
+      const base = dir ? path.resolve(repoRoot(), dir) : repoRoot();
+      const results: { path: string; line: number; preview: string }[] = [];
+      const ignore = new Set(['node_modules', 'dist', 'build', 'out']);
+      const walk = (p: string, rel: string) => {
+        const entries = fs.readdirSync(p, { withFileTypes: true });
+        for (const e of entries) {
+          if (e.name.startsWith('.')) continue;
+          if (ignore.has(e.name)) continue;
+          const abs = path.join(p, e.name);
+          const r = path.join(rel, e.name);
+          if (e.isDirectory()) { walk(abs, r); continue; }
+          if (!fs.existsSync(abs) || fs.statSync(abs).size > 512 * 1024) continue;
+          try {
+            const data = fs.readFileSync(abs, 'utf8');
+            const lines = data.split(/\r?\n/);
+            lines.forEach((ln, idx) => {
+              if (ln.toLowerCase().includes(term.toLowerCase())) {
+                results.push({ path: r.replace(/\\/g, '/'), line: idx + 1, preview: ln.trim().slice(0, 200) });
+              }
+            });
+          } catch {}
+        }
+      };
+      walk(base, '');
+      return results;
+    } catch { return []; }
+  }
+  ,
   writeBytesBase64(relPath: string, base64: string): boolean {
     try {
       const abs = path.resolve(repoRoot(), relPath);
