@@ -81,6 +81,7 @@ const App: React.FC = () => {
   const [shortcutsOpen, setShortcutsOpen] = React.useState(false);
   const [caret, setCaret] = React.useState<{ line: number; column: number }>({ line: 1, column: 1 });
   const [diagnostics, setDiagnostics] = React.useState<Array<{ message: string; severity: 'error' | 'warning' | 'info'; startLine: number; startColumn: number; endLine: number; endColumn: number }>>([]);
+  const [diagnosticsVisible, setDiagnosticsVisible] = React.useState<boolean>(true);
   const [changesCount, setChangesCount] = React.useState<number>(0);
   const [branch, setBranch] = React.useState<string | null>(null);
   const dirtyCount = React.useMemo(() => buffers.filter(b => b.content !== (b.savedContent ?? '')).length, [buffers]);
@@ -208,7 +209,7 @@ const App: React.FC = () => {
     registry.register({ id: 'close-buffer', title: 'Close Current Tab', run: () => { if (activeId) close(activeId); } });
     registry.register({ id: 'close-others', title: 'Close Other Tabs', run: () => { if (activeId) closeOthers(activeId); } });
     registry.register({ id: 'close-all', title: 'Close All Tabs', run: () => { closeAll(); } });
-    registry.register({ id: 'save-buffer', title: 'Save Buffer', run: () => { save(activeId); try { (window as any).rainvibe?.appendAudit?.(JSON.stringify({ kind:'save', path: active?.path, ts: Date.now() })+'\n'); } catch {} } });
+    registry.register({ id: 'save-buffer', title: 'Save Buffer', run: () => { if (prefs.formatOnSave) { try { (document.activeElement as any)?.blur?.(); } catch {} /* formatting handled by editor action */ } save(activeId); try { (window as any).rainvibe?.appendAudit?.(JSON.stringify({ kind:'save', path: active?.path, ts: Date.now() })+'\n'); } catch {} } });
     registry.register({ id: 'save-all', title: 'Save All Buffers', run: () => { try { buffers.forEach(b => { (window as any).rainvibe?.writeTextFile?.(b.path, b.content); }); } catch {} } });
     registry.register({ id: 'open-shortcuts', title: 'Open Shortcuts', run: () => setShortcutsOpen(true) });
     registry.register({ id: 'toggle-minimap', title: 'Toggle Minimap', run: () => {
@@ -232,6 +233,7 @@ const App: React.FC = () => {
     registry.register({ id: 'toggle-token-meter', title: 'Toggle Token Meter', run: () => {
       try { save({ ...prefs, tokenMeter: !prefs.tokenMeter }); } catch {}
     }});
+    registry.register({ id: 'toggle-diagnostics', title: 'Toggle Diagnostics Visibility', run: () => setDiagnosticsVisible(v => !v) });
     registry.register({ id: 'zoom-in', title: 'Zoom In', run: () => { try { save({ ...prefs, fontSize: Math.min(28, (prefs.fontSize ?? 14) + 1) }); } catch {} } });
     registry.register({ id: 'zoom-out', title: 'Zoom Out', run: () => { try { save({ ...prefs, fontSize: Math.max(10, (prefs.fontSize ?? 14) - 1) }); } catch {} } });
     registry.register({ id: 'zoom-reset', title: 'Zoom Reset', run: () => { try { save({ ...prefs, fontSize: 14 }); } catch {} } });
@@ -305,6 +307,8 @@ const App: React.FC = () => {
     registry.register({ id: 'open-run-tab', title: 'Open Run Console Tab', run: () => {
       window.dispatchEvent(new CustomEvent('rainvibe:assistantTab', { detail: 'Run' }));
     }});
+    registry.register({ id: 'open-external', title: 'Open Current File Externally', run: () => { if (active?.path) { try { (window as any).rainvibe?.openPath?.(active.path); } catch {} } }});
+    registry.register({ id: 'refresh-branch', title: 'Refresh Git Branch', run: () => { try { setBranch((window as any).rainvibe?.gitBranch?.() || null); } catch {} } });
     registry.register({ id: 'open-chat-tab', title: 'Open Chat Tab', run: () => {
       window.dispatchEvent(new CustomEvent('rainvibe:assistantTab', { detail: 'Chat' }));
     }});
@@ -406,7 +410,7 @@ const App: React.FC = () => {
               language={active.language}
               onChange={(v) => update(active.id, v)}
               inlineAutocompleteEnabled={!!prefs.ghostText}
-              diagnostics={diagnostics}
+              diagnostics={diagnosticsVisible ? diagnostics : []}
               minimap={prefs.minimap}
               fontSize={prefs.fontSize}
               wordWrap={!!prefs.wordWrap}
