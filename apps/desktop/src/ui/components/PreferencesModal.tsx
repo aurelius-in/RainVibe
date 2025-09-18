@@ -40,6 +40,9 @@ const PreferencesModal: React.FC<Props> = ({ open, onClose }) => {
             <input type="checkbox" checked={!!local.minimap} onChange={(e) => setLocal({ ...local, minimap: e.target.checked })} />
             <span>Editor minimap</span>
           </label>
+          <label className="block">Font size
+            <input type="number" min={10} max={28} className="mt-1 bg-black border border-white/15 rounded px-2 py-1 w-full" value={local.fontSize ?? 14} onChange={(e) => setLocal({ ...local, fontSize: Number(e.target.value) || 14 })} />
+          </label>
         </div>
         <div className="mt-4 flex justify-end gap-2">
           <button onClick={onClose} className="px-3 py-1 border border-white/15 rounded hover:bg-white/10">Cancel</button>
