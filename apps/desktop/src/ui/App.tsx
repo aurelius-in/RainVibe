@@ -37,11 +37,12 @@ const TopBar: React.FC<{ modes: string[]; version?: string; onChange: (m: string
   );
 };
 
-const StatusBar: React.FC<{ modes: string[]; policyOn: boolean; policyCount: number; auditCount: number; changesCount: number; dirtyCount?: number; caret?: { line: number; column: number }; language?: string; model: string; provider: string; offline: boolean; tokensPct: number; tokenMeter?: boolean; onClickPolicy?: () => void; onClickAudit?: () => void; onClickModel?: () => void; onClickChanges?: () => void; onClickTokens?: () => void }>= ({ modes, policyOn, policyCount, auditCount, changesCount, dirtyCount, caret, language, model, provider, offline, tokensPct, tokenMeter, onClickPolicy, onClickAudit, onClickModel, onClickChanges, onClickTokens }) => {
+const StatusBar: React.FC<{ modes: string[]; policyOn: boolean; policyCount: number; auditCount: number; changesCount: number; dirtyCount?: number; caret?: { line: number; column: number }; language?: string; model: string; provider: string; branch?: string | null; offline: boolean; tokensPct: number; tokenMeter?: boolean; onClickPolicy?: () => void; onClickAudit?: () => void; onClickModel?: () => void; onClickChanges?: () => void; onClickTokens?: () => void }>= ({ modes, policyOn, policyCount, auditCount, changesCount, dirtyCount, caret, language, model, provider, branch, offline, tokensPct, tokenMeter, onClickPolicy, onClickAudit, onClickModel, onClickChanges, onClickTokens }) => {
   return (
     <div className="h-6 text-xs px-3 flex items-center gap-4 border-t border-white/10 bg-black text-white/80">
       <button onClick={onClickModel} className="underline-offset-2 hover:underline">model: {model}</button>
       <span>provider: {provider}{offline ? ' (offline)' : ''}</span>
+      {branch && <span>branch: {branch}</span>}
       <span>mode: {modes.join(' + ') || '—'}</span>
       <button onClick={onClickPolicy} className="underline-offset-2 hover:underline">policy: {policyOn ? `on (${policyCount})` : 'off'}</button>
       <button onClick={onClickAudit} className="underline-offset-2 hover:underline">audit: {auditCount}</button>
@@ -81,6 +82,7 @@ const App: React.FC = () => {
   const [caret, setCaret] = React.useState<{ line: number; column: number }>({ line: 1, column: 1 });
   const [diagnostics, setDiagnostics] = React.useState<Array<{ message: string; severity: 'error' | 'warning' | 'info'; startLine: number; startColumn: number; endLine: number; endColumn: number }>>([]);
   const [changesCount, setChangesCount] = React.useState<number>(0);
+  const [branch, setBranch] = React.useState<string | null>(null);
   const dirtyCount = React.useMemo(() => buffers.filter(b => b.content !== (b.savedContent ?? '')).length, [buffers]);
   React.useEffect(() => {
     try { document.title = `RainVibe — ${active?.path ?? ''}`; } catch {}
@@ -149,6 +151,7 @@ const App: React.FC = () => {
     try {
       const entries = (window as any).rainvibe?.gitStatus?.() || [];
       setChangesCount(entries.length);
+      setBranch((window as any).rainvibe?.gitBranch?.() || null);
     } catch { setChangesCount(0); }
   }, []);
     registry.register({ id: 'toggle-assistant', title: 'Toggle Assistant Panel', run: () => { setAssistantOpen(v => !v); try { (window as any).rainvibe?.appendAudit?.(JSON.stringify({ kind:'toggle_assistant', ts: Date.now() })+'\n'); } catch {} } });
@@ -273,6 +276,9 @@ const App: React.FC = () => {
     registry.register({ id: 'toggle-block-comment', title: 'Toggle Block Comment', run: () => trigger('editor.action.blockComment') });
     registry.register({ id: 'select-occurrences', title: 'Select All Occurrences', run: () => trigger('editor.action.selectHighlights') });
     registry.register({ id: 'format-selection', title: 'Format Selection', run: () => trigger('editor.action.formatSelection') });
+    registry.register({ id: 'copy-selection-md', title: 'Copy Selection as Markdown', run: async () => {
+      try { const sel = window.getSelection?.()?.toString?.() || ''; if (sel) await navigator.clipboard.writeText('```\n' + sel + '\n```'); } catch {}
+    }});
     registry.register({ id: 'open-welcome', title: 'Open Welcome Buffer', run: () => open('WELCOME.ts') });
     registry.register({ id: 'open-file', title: 'Open File…', run: () => {
       const path = prompt('Enter relative path to open:');
@@ -485,6 +491,7 @@ const App: React.FC = () => {
         dirtyCount={dirtyCount}
         model={prefs.model}
         provider={prefs.provider}
+        branch={branch}
         offline={!!prefs.offlineOnly}
         tokensPct={tokensPct}
         tokenMeter={prefs.tokenMeter}
