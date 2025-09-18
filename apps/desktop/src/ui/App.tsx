@@ -37,15 +37,15 @@ const TopBar: React.FC<{ modes: string[]; onChange: (m: string[]) => void; onOpe
   );
 };
 
-const StatusBar: React.FC<{ modes: string[]; policyOn: boolean; policyCount: number; auditCount: number; changesCount: number; model: string; provider: string; offline: boolean; tokensPct: number; onClickPolicy?: () => void; onClickAudit?: () => void }>= ({ modes, policyOn, policyCount, auditCount, changesCount, model, provider, offline, tokensPct, onClickPolicy, onClickAudit }) => {
+const StatusBar: React.FC<{ modes: string[]; policyOn: boolean; policyCount: number; auditCount: number; changesCount: number; model: string; provider: string; offline: boolean; tokensPct: number; onClickPolicy?: () => void; onClickAudit?: () => void; onClickModel?: () => void; onClickChanges?: () => void }>= ({ modes, policyOn, policyCount, auditCount, changesCount, model, provider, offline, tokensPct, onClickPolicy, onClickAudit, onClickModel, onClickChanges }) => {
   return (
     <div className="h-6 text-xs px-3 flex items-center gap-4 border-t border-white/10 bg-black text-white/80">
-      <span>model: {model}</span>
+      <button onClick={onClickModel} className="underline-offset-2 hover:underline">model: {model}</button>
       <span>provider: {provider}{offline ? ' (offline)' : ''}</span>
       <span>mode: {modes.join(' + ') || '—'}</span>
       <button onClick={onClickPolicy} className="underline-offset-2 hover:underline">policy: {policyOn ? `on (${policyCount})` : 'off'}</button>
       <button onClick={onClickAudit} className="underline-offset-2 hover:underline">audit: {auditCount}</button>
-      <span>changes: {changesCount}</span>
+      <button onClick={onClickChanges} className="underline-offset-2 hover:underline">changes: {changesCount}</button>
       <span>tokens: {Math.min(100, Math.max(0, Math.round(tokensPct)))}%</span>
     </div>
   );
@@ -365,6 +365,8 @@ const App: React.FC = () => {
         tokensPct={tokensPct}
         onClickPolicy={() => window.dispatchEvent(new CustomEvent('rainvibe:assistantTab', { detail: 'Guardrails' }))}
         onClickAudit={() => window.dispatchEvent(new CustomEvent('rainvibe:assistantTab', { detail: 'Trails' }))}
+        onClickModel={() => setPrefsOpen(true)}
+        onClickChanges={() => window.dispatchEvent(new CustomEvent('rainvibe:assistantTab', { detail: 'Changes' }))}
       />
       <ActionBoard
         open={boardOpen}
