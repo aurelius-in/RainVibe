@@ -48,7 +48,7 @@ const StatusBar: React.FC<{ modes: string[]; policyOn: boolean; policyCount: num
       <button onClick={onClickAudit} className="underline-offset-2 hover:underline">audit: {auditCount}</button>
       <button onClick={onClickChanges} className="underline-offset-2 hover:underline">changes: {changesCount}</button>
       {typeof dirtyCount === 'number' && <span>dirty: {dirtyCount}</span>}
-      {caret && <span>ln {caret.line}, col {caret.column}{language ? ` — ${language}` : ''}</span>}
+      {caret && <span>{language ? `${language} — ` : ''}{branch ? `${branch} — ` : ''}{caret.line}:{caret.column}</span>}
       <span>UTF-8 LF</span>
       {tokenMeter !== false && (
         <button onClick={onClickTokens} className={`underline-offset-2 hover:underline ${tokensPct > 80 ? 'text-red-400' : tokensPct > 60 ? 'text-yellow-300' : ''}`}>
@@ -60,7 +60,7 @@ const StatusBar: React.FC<{ modes: string[]; policyOn: boolean; policyCount: num
 };
 
 const App: React.FC = () => {
-  const { buffers, activeId, setActiveId, update, save, newBuffer, open, closeOthers, closeAll, close } = useBuffers();
+  const { buffers, activeId, setActiveId, update, save, newBuffer, open, closeOthers, closeAll, close, renameBuffer } = useBuffers();
   const active = buffers.find(b => b.id === activeId) ?? buffers[0];
   const { active: activeModes, update: setModes } = useModes();
   const { status: policy, toggle: togglePolicy } = usePolicy();
@@ -258,9 +258,7 @@ const App: React.FC = () => {
       try {
         const ok = (window as any).rainvibe?.renamePath?.(active.path, to);
         if (ok) {
-          // Reload buffer with new path
-          const txt = (window as any).rainvibe?.readTextFile?.(to) ?? active.content;
-          update(active.id, String(txt));
+          renameBuffer(active.id, to);
           window.dispatchEvent(new CustomEvent('rainvibe:workspace:refresh'));
         }
       } catch {}
@@ -287,6 +285,19 @@ const App: React.FC = () => {
       const path = prompt('Enter relative path to open:');
       if (path) open(path);
     }});
+    registry.register({ id: 'import-preferences', title: 'Import Preferences…', run: async () => {
+      try {
+        const raw = prompt('Paste preferences JSON');
+        if (!raw) return;
+        const obj = JSON.parse(raw);
+        save({ ...prefs, ...obj });
+      } catch {}
+    }});
+    registry.register({ id: 'export-preferences', title: 'Export Preferences to Clipboard', run: async () => {
+      try { await navigator.clipboard.writeText(JSON.stringify(prefs, null, 2)); } catch {}
+    }});
+    registry.register({ id: 'copy-relative-path', title: 'Copy Relative Path', run: async () => { try { await navigator.clipboard.writeText(active?.path || ''); } catch {} }});
+    registry.register({ id: 'copy-filename', title: 'Copy Filename', run: async () => { try { const name = active?.path?.split('/')?.pop() || ''; await navigator.clipboard.writeText(name); } catch {} }});
     registry.register({ id: 'generate-feature-report', title: 'Generate Feature Coverage Report', run: () => {
       fetch('/scripts/feature-report.mjs').catch(() => {});
       alert('Run `pnpm report` to generate FEATURE_COVERAGE.md');
