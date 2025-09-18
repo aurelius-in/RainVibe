@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAiClient } from '../state/useAiClient';
 import { usePreferences } from '../state/usePreferences';
+import { useModes } from '../state/useModes';
 
 interface Message { role: 'user' | 'assistant'; content: string }
 
@@ -9,6 +10,7 @@ const ChatTab: React.FC = () => {
   const [input, setInput] = React.useState('');
   const { chat } = useAiClient();
   const { prefs } = usePreferences();
+  const { active: modes } = useModes();
 
   const runSlash = async (text: string) => {
     if (text.startsWith('/plan')) return 'Planned: outline steps.';
@@ -25,7 +27,13 @@ const ChatTab: React.FC = () => {
     if (!trimmed) return;
     setMessages((m) => [...m, { role: 'user', content: trimmed }]);
     setInput('');
-    const slash = await runSlash(trimmed);
+    let slash = await runSlash(trimmed);
+    if (!slash && modes.includes('Bug Fixer')) {
+      slash = 'Bug Fixer: analyzing issue and proposing a minimal diff...';
+    }
+    if (!slash && modes.includes('Coach')) {
+      slash = 'Coach: here are a few hints → options → solution.';
+    }
     if (slash) {
       setMessages((m) => [...m, { role: 'assistant', content: slash }]);
       return;

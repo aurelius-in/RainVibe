@@ -8,10 +8,11 @@ interface Props {
   inlineAutocompleteEnabled?: boolean;
   diagnostics?: Array<{ message: string; severity: 'error' | 'warning' | 'info'; startLine: number; startColumn: number; endLine: number; endColumn: number }>
   minimap?: boolean;
+  fontSize?: number;
   onReady?: (api: { revealPosition: (line: number, column: number) => void; trigger: (actionId: string) => void }) => void;
 }
 
-const EditorHost: React.FC<Props> = ({ value, language, onChange, inlineAutocompleteEnabled, diagnostics, minimap, onReady }) => {
+const EditorHost: React.FC<Props> = ({ value, language, onChange, inlineAutocompleteEnabled, diagnostics, minimap, fontSize, onReady }) => {
   const editorRef = React.useRef<any>(null);
   const monacoRef = React.useRef<any>(null);
 
@@ -98,6 +99,7 @@ const EditorHost: React.FC<Props> = ({ value, language, onChange, inlineAutocomp
         minimap: { enabled: minimap !== false },
         fontLigatures: true,
         fontFamily: 'Consolas, "JetBrains Mono", "Source Code Pro", monospace',
+        fontSize: fontSize ?? 14,
         renderWhitespace: 'none',
         automaticLayout: true,
       }}

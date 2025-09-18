@@ -37,13 +37,15 @@ const TopBar: React.FC<{ modes: string[]; onChange: (m: string[]) => void; onOpe
   );
 };
 
-const StatusBar: React.FC<{ modes: string[]; policyOn: boolean; policyCount: number; auditCount: number; model: string; tokensPct: number }>= ({ modes, policyOn, policyCount, auditCount, model, tokensPct }) => {
+const StatusBar: React.FC<{ modes: string[]; policyOn: boolean; policyCount: number; auditCount: number; changesCount: number; model: string; provider: string; offline: boolean; tokensPct: number; onClickPolicy?: () => void; onClickAudit?: () => void }>= ({ modes, policyOn, policyCount, auditCount, changesCount, model, provider, offline, tokensPct, onClickPolicy, onClickAudit }) => {
   return (
     <div className="h-6 text-xs px-3 flex items-center gap-4 border-t border-white/10 bg-black text-white/80">
       <span>model: {model}</span>
+      <span>provider: {provider}{offline ? ' (offline)' : ''}</span>
       <span>mode: {modes.join(' + ') || '—'}</span>
-      <span>policy: {policyOn ? `on (${policyCount})` : 'off'}</span>
-      <span>audit: {auditCount}</span>
+      <button onClick={onClickPolicy} className="underline-offset-2 hover:underline">policy: {policyOn ? `on (${policyCount})` : 'off'}</button>
+      <button onClick={onClickAudit} className="underline-offset-2 hover:underline">audit: {auditCount}</button>
+      <span>changes: {changesCount}</span>
       <span>tokens: {Math.min(100, Math.max(0, Math.round(tokensPct)))}%</span>
     </div>
   );
@@ -71,6 +73,7 @@ const App: React.FC = () => {
   const [diffModified, setDiffModified] = React.useState('');
   const [shortcutsOpen, setShortcutsOpen] = React.useState(false);
   const [diagnostics, setDiagnostics] = React.useState<Array<{ message: string; severity: 'error' | 'warning' | 'info'; startLine: number; startColumn: number; endLine: number; endColumn: number }>>([]);
+  const [changesCount, setChangesCount] = React.useState<number>(0);
   React.useEffect(() => {
     try { document.title = `RainVibe — ${active?.path ?? ''}`; } catch {}
   }, [active?.path]);
@@ -97,9 +100,19 @@ const App: React.FC = () => {
     const len = (active?.content || '').length;
     return Math.min(100, (len / 4000) * 100);
   }, [active?.content]);
+
+  React.useEffect(() => {
+    try {
+      const entries = (window as any).rainvibe?.gitStatus?.() || [];
+      setChangesCount(entries.length);
+    } catch { setChangesCount(0); }
+  }, []);
     registry.register({ id: 'toggle-assistant', title: 'Toggle Assistant Panel', run: () => { setAssistantOpen(v => !v); try { (window as any).rainvibe?.appendAudit?.(JSON.stringify({ kind:'toggle_assistant', ts: Date.now() })+'\n'); } catch {} } });
     registry.register({ id: 'mode-basic', title: 'Switch Mode: Basic', run: () => { setModes(['Basic'] as any); try { (window as any).rainvibe?.appendAudit?.(JSON.stringify({ kind:'switch_mode', mode:'Basic', ts: Date.now() })+'\n'); } catch {} } });
-    registry.register({ id: 'toggle-policy', title: 'Toggle Policy-Safe', run: () => togglePolicy() });
+    registry.register({ id: 'toggle-policy', title: 'Toggle Policy-Safe', run: () => {
+      if (activeModes.includes('Basic')) return; // disabled in Basic
+      togglePolicy();
+    }});
     registry.register({ id: 'open-preferences', title: 'Open Preferences', run: () => setPrefsOpen(true) });
     registry.register({ id: 'open-about', title: 'Open About', run: () => setAboutOpen(true) });
     registry.register({ id: 'policy-simulate', title: 'Simulate Policy Check', run: () => {
@@ -131,6 +144,13 @@ const App: React.FC = () => {
     registry.register({ id: 'copy-path', title: 'Copy File Path', run: async () => {
       try { await navigator.clipboard.writeText(active?.path || ''); } catch {}
     }});
+    registry.register({ id: 'refresh-changes', title: 'Refresh Changes Count', run: () => {
+      try {
+        const entries = (window as any).rainvibe?.gitStatus?.() || [];
+        setChangesCount(entries.length);
+        window.dispatchEvent(new CustomEvent('rainvibe:assistantTab', { detail: 'Changes' }));
+      } catch {}
+    }});
     registry.register({ id: 'new-buffer', title: 'New Buffer', run: () => newBuffer() });
     registry.register({ id: 'close-buffer', title: 'Close Current Tab', run: () => { if (activeId) close(activeId); } });
     registry.register({ id: 'close-others', title: 'Close Other Tabs', run: () => { if (activeId) closeOthers(activeId); } });
@@ -143,6 +163,9 @@ const App: React.FC = () => {
     }});
     registry.register({ id: 'toggle-ghost-text', title: 'Toggle Ghost Text', run: () => {
       try { save({ ...prefs, ghostText: !prefs.ghostText }); } catch {}
+    }});
+    registry.register({ id: 'toggle-offline', title: 'Toggle Offline Only', run: () => {
+      try { save({ ...prefs, offlineOnly: !prefs.offlineOnly }); } catch {}
     }});
     registry.register({ id: 'open-file', title: 'Open File…', run: () => {
       const path = prompt('Enter relative path to open:');
@@ -257,6 +280,7 @@ const App: React.FC = () => {
               inlineAutocompleteEnabled={!!prefs.ghostText}
               diagnostics={diagnostics}
               minimap={prefs.minimap}
+              fontSize={prefs.fontSize}
               onReady={({ revealPosition, trigger }) => {
                 registry.register({ id: 'go-to-line', title: 'Go to Line…', run: () => {
                   const v = prompt('Line:Column');
@@ -311,7 +335,19 @@ const App: React.FC = () => {
           />
         </aside>
       </div>
-      <StatusBar modes={activeModes as any} policyOn={policy.enabled} policyCount={(policy as any)?.ruleFiles?.length ?? 0} auditCount={events.length} model={prefs.model} tokensPct={tokensPct} />
+      <StatusBar
+        modes={activeModes as any}
+        policyOn={policy.enabled}
+        policyCount={(policy as any)?.ruleFiles?.length ?? 0}
+        auditCount={events.length}
+        changesCount={changesCount}
+        model={prefs.model}
+        provider={prefs.provider}
+        offline={!!prefs.offlineOnly}
+        tokensPct={tokensPct}
+        onClickPolicy={() => window.dispatchEvent(new CustomEvent('rainvibe:assistantTab', { detail: 'Guardrails' }))}
+        onClickAudit={() => window.dispatchEvent(new CustomEvent('rainvibe:assistantTab', { detail: 'Trails' }))}
+      />
       <ActionBoard
         open={boardOpen}
         onClose={() => setBoardOpen(false)}
