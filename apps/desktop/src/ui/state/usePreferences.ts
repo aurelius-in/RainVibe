@@ -4,6 +4,8 @@ export interface Preferences {
   provider: 'chatgpt' | 'anthropic' | 'azure' | 'local';
   model: string;
   offlineOnly: boolean;
+  apiKey?: string;
+  baseUrl?: string;
   ghostText?: boolean;
   telemetryOptIn?: boolean;
   minimap?: boolean;
@@ -15,11 +17,12 @@ export interface Preferences {
   autosave?: boolean;
   formatOnSave?: boolean;
   wordWrapColumn?: number;
+  formatOnSavePerLanguage?: Record<string, boolean>;
 }
 
 const KEY = 'rainvibe.preferences';
 const KEY_FIRST = 'rainvibe.firstRun';
-const DEFAULTS: Preferences = { provider: 'chatgpt', model: 'gpt-4o-mini', offlineOnly: false, ghostText: true, telemetryOptIn: false, minimap: true, fontSize: 14, wordWrap: false, wordWrapColumn: 80, tokenMeter: true, lineNumbers: true, renderWhitespace: false, autosave: false, formatOnSave: false };
+const DEFAULTS: Preferences = { provider: 'chatgpt', model: 'gpt-4o-mini', offlineOnly: false, apiKey: '', baseUrl: '', ghostText: true, telemetryOptIn: false, minimap: true, fontSize: 14, wordWrap: false, wordWrapColumn: 80, tokenMeter: true, lineNumbers: true, renderWhitespace: false, autosave: false, formatOnSave: false, formatOnSavePerLanguage: { typescript: true, javascript: true, json: true, markdown: true } };
 
 export function usePreferences() {
   const [prefs, setPrefs] = React.useState<Preferences>(() => {

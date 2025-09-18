@@ -10,19 +10,21 @@ export function useAiClient() {
   const { active: modes } = useModes();
   const providerRef = React.useRef(createProvider({
     provider: prefs.provider,
-    apiKey: undefined,
+    apiKey: prefs.apiKey,
     model: prefs.model,
     offlineOnly: prefs.offlineOnly,
+    baseUrl: prefs.baseUrl,
   }));
 
   React.useEffect(() => {
     providerRef.current = createProvider({
       provider: prefs.provider,
-      apiKey: undefined,
+      apiKey: prefs.apiKey,
       model: prefs.model,
       offlineOnly: prefs.offlineOnly,
+      baseUrl: prefs.baseUrl,
     });
-  }, [prefs.provider, prefs.model, prefs.offlineOnly]);
+  }, [prefs.provider, prefs.model, prefs.offlineOnly, prefs.apiKey, prefs.baseUrl]);
 
   return {
     chat: async (messages: AiMessage[]) => {

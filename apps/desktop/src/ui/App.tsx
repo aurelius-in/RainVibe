@@ -246,7 +246,9 @@ const App: React.FC = () => {
     registry.register({ id: 'reopen-closed', title: 'Reopen Closed Tab', run: () => reopenClosed() });
     registry.register({ id: 'save-buffer', title: 'Save Buffer', run: async () => {
       try {
-        if (prefs.formatOnSave) {
+        const lang = active?.language || '';
+        const perLang = (prefs as any).formatOnSavePerLanguage || {};
+        if (prefs.formatOnSave || perLang[lang]) {
           const fmt = registry.get('format-document');
           await fmt?.run();
         }
