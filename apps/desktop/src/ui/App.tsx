@@ -89,6 +89,15 @@ const App: React.FC = () => {
     try { localStorage.setItem('rainvibe.ui.assistantOpen', String(assistantOpen)); } catch {}
   }, [assistantOpen]);
 
+  // Autosave debounce for active buffer
+  React.useEffect(() => {
+    if (!prefs.autosave) return;
+    const id = setTimeout(() => {
+      try { if (activeId) save(activeId); } catch {}
+    }, 1000);
+    return () => clearTimeout(id);
+  }, [prefs.autosave, activeId, active?.content]);
+
   React.useEffect(() => {
     const modeHandler = (e: any) => {
       const name = String(e?.detail || '');
@@ -178,6 +187,12 @@ const App: React.FC = () => {
     }});
     registry.register({ id: 'copy-path', title: 'Copy File Path', run: async () => {
       try { await navigator.clipboard.writeText(active?.path || ''); } catch {}
+    }});
+    registry.register({ id: 'reload-org-defaults', title: 'Reload Org Defaults', run: () => {
+      try {
+        const org = (window as any).rainvibe?.orgDefaults?.();
+        if (org?.defaults) { save({ ...prefs, ...org.defaults }); }
+      } catch {}
     }});
     registry.register({ id: 'refresh-changes', title: 'Refresh Changes Count', run: () => {
       try {

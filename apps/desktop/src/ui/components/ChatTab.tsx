@@ -55,7 +55,8 @@ const ChatTab: React.FC = () => {
   };
 
   const sendSelection = () => {
-    window.dispatchEvent(new CustomEvent('rainvibe:get-selection', { detail: {} } as any));
+    const sel = localStorage.getItem('rainvibe.chat.selection') || '';
+    if (sel) setInput(sel);
   };
 
   return (
