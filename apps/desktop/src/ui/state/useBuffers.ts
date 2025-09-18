@@ -21,6 +21,7 @@ export function useBuffers() {
   const [activeId, setActiveId] = React.useState<string>(() => {
     try { return localStorage.getItem('rainvibe.buffers.active') || 'welcome'; } catch { return 'welcome'; }
   });
+  const [closedStack, setClosedStack] = React.useState<Buffer[]>([]);
 
   React.useEffect(() => {
     try { localStorage.setItem('rainvibe.buffers', JSON.stringify(buffers)); } catch {}
@@ -68,6 +69,7 @@ export function useBuffers() {
       const ok = window.confirm('You have unsaved changes. Close anyway?');
       if (!ok) return;
     }
+    if (buf) setClosedStack(prev => [buf, ...prev].slice(0, 20));
     setBuffers(prev => prev.filter(b => b.id !== id));
     if (activeId === id && buffers.length > 1) {
       const next = buffers.find(b => b.id !== id);
@@ -90,6 +92,10 @@ export function useBuffers() {
     if (activeId === oldId) setActiveId(newPath);
   };
 
+  const setLanguageFor = (id: string, language: string) => {
+    setBuffers(prev => prev.map(b => b.id === id ? { ...b, language } : b));
+  };
+
   const closeOthers = (id: string) => {
     setBuffers(prev => prev.filter(b => b.id === id));
     setActiveId(id);
@@ -100,9 +106,33 @@ export function useBuffers() {
     setActiveId('welcome');
   };
 
+  const closeLeftOf = (id: string) => {
+    const idx = buffers.findIndex(b => b.id === id);
+    if (idx <= 0) return;
+    const left = buffers.slice(0, idx).filter(b => b.id !== 'welcome');
+    setClosedStack(prev => [...left.reverse(), ...prev].slice(0, 20));
+    setBuffers(prev => prev.filter((_, i) => i >= idx || prev[i].id === 'welcome'));
+  };
+
+  const closeRightOf = (id: string) => {
+    const idx = buffers.findIndex(b => b.id === id);
+    if (idx < 0) return;
+    const right = buffers.slice(idx + 1).filter(b => b.id !== 'welcome');
+    setClosedStack(prev => [...right.reverse(), ...prev].slice(0, 20));
+    setBuffers(prev => prev.filter((_, i) => i <= idx || prev[i].id === 'welcome'));
+  };
+
+  const reopenClosed = () => {
+    const [top, ...rest] = closedStack;
+    if (!top) return;
+    setClosedStack(rest);
+    setBuffers(prev => [...prev, top]);
+    setActiveId(top.id);
+  };
+
   const isDirty = (b: Buffer) => b.content !== (b.savedContent ?? '');
 
-  return { buffers, activeId, setActiveId, update, open, save, close, newBuffer, closeOthers, closeAll, isDirty, renameBuffer };
+  return { buffers, activeId, setActiveId, update, open, save, close, newBuffer, closeOthers, closeAll, isDirty, renameBuffer, closeLeftOf, closeRightOf, reopenClosed, setLanguageFor };
 }
 
 function guessLang(p: string): string {

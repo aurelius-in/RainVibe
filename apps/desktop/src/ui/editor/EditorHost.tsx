@@ -10,6 +10,7 @@ interface Props {
   minimap?: boolean;
   fontSize?: number;
   wordWrap?: boolean;
+  wordWrapColumn?: number;
   lineNumbers?: boolean;
   renderWhitespace?: boolean;
   onReady?: (api: { revealPosition: (line: number, column: number) => void; trigger: (actionId: string) => void; insertText: (text: string) => void; getSelectionText: () => string; getCursor: () => { line: number; column: number } }) => void;
@@ -17,7 +18,7 @@ interface Props {
   onSelectionChange?: (text: string) => void;
 }
 
-const EditorHost: React.FC<Props> = ({ value, language, onChange, inlineAutocompleteEnabled, diagnostics, minimap, fontSize, wordWrap, lineNumbers, renderWhitespace, onReady, onCursorChange, onSelectionChange }) => {
+const EditorHost: React.FC<Props> = ({ value, language, onChange, inlineAutocompleteEnabled, diagnostics, minimap, fontSize, wordWrap, wordWrapColumn, lineNumbers, renderWhitespace, onReady, onCursorChange, onSelectionChange }) => {
   const editorRef = React.useRef<any>(null);
   const monacoRef = React.useRef<any>(null);
 
@@ -130,7 +131,8 @@ const EditorHost: React.FC<Props> = ({ value, language, onChange, inlineAutocomp
         fontLigatures: true,
         fontFamily: 'Consolas, "JetBrains Mono", "Source Code Pro", monospace',
         fontSize: fontSize ?? 14,
-        wordWrap: wordWrap ? 'on' : 'off',
+        wordWrap: wordWrap ? 'wordWrapColumn' : 'off',
+        wordWrapColumn: wordWrapColumn ?? 80,
         renderWhitespace: renderWhitespace ? 'all' : 'none',
         lineNumbers: lineNumbers === false ? 'off' : 'on',
         automaticLayout: true,
