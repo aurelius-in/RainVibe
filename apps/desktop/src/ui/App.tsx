@@ -238,6 +238,14 @@ const App: React.FC = () => {
       try { (window as any).rainvibe?.appendAudit?.(JSON.stringify({ kind:'save', path: active?.path, ts: Date.now() })+'\n'); } catch {}
     } });
     registry.register({ id: 'save-all', title: 'Save All Buffers', run: () => { try { buffers.forEach(b => { (window as any).rainvibe?.writeTextFile?.(b.path, b.content); }); } catch {} } });
+    registry.register({ id: 'revert-buffer', title: 'Revert Buffer to Saved', run: () => {
+      if (!active?.path) return;
+      try { const txt = (window as any).rainvibe?.readTextFile?.(active.path); if (txt != null) update(active.id, String(txt)); } catch {}
+    }});
+    registry.register({ id: 'close-saved-tabs', title: 'Close All Saved Tabs', run: () => {
+      const saved = buffers.filter(b => (b.content === (b.savedContent ?? '')) && b.id !== 'welcome').map(b => b.id);
+      saved.forEach(id => close(id));
+    }});
     registry.register({ id: 'open-shortcuts', title: 'Open Shortcuts', run: () => setShortcutsOpen(true) });
     registry.register({ id: 'toggle-minimap', title: 'Toggle Minimap', run: () => {
       try { save({ ...prefs, minimap: !prefs.minimap }); } catch {}

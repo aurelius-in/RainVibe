@@ -133,14 +133,19 @@ const AssistantPanel: React.FC<Props> = ({ open, audit, diagnostics, onOpenPath,
           </div>
         )}
         {tab === 'Kits' && (
-          <div className="space-y-1">
-            {(() => {
-              try {
-                const kits = (window as any).rainvibe?.listKits?.() || [];
-                if (!kits.length) return <div className="opacity-60 text-xs">No kits installed</div>;
-                return kits.map((k: string) => <div key={k} className="border border-white/10 rounded px-2 py-1 text-xs">{k}</div>);
-              } catch { return <div className="opacity-60 text-xs">No kits installed</div>; }
-            })()}
+          <div className="space-y-2">
+            <div>
+              <button onClick={() => setTab('Kits')} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10">Refresh</button>
+            </div>
+            <div className="space-y-1">
+              {(() => {
+                try {
+                  const kits = (window as any).rainvibe?.listKits?.() || [];
+                  if (!kits.length) return <div className="opacity-60 text-xs">No kits installed</div>;
+                  return kits.map((k: string) => <div key={k} className="border border-white/10 rounded px-2 py-1 text-xs">{k}</div>);
+                } catch { return <div className="opacity-60 text-xs">No kits installed</div>; }
+              })()}
+            </div>
           </div>
         )}
         {tab === 'Navigation' && (
