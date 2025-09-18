@@ -167,6 +167,23 @@ const App: React.FC = () => {
     registry.register({ id: 'toggle-offline', title: 'Toggle Offline Only', run: () => {
       try { save({ ...prefs, offlineOnly: !prefs.offlineOnly }); } catch {}
     }});
+    registry.register({ id: 'toggle-word-wrap', title: 'Toggle Word Wrap', run: () => {
+      try { save({ ...prefs, wordWrap: !prefs.wordWrap }); } catch {}
+    }});
+    registry.register({ id: 'zoom-in', title: 'Zoom In', run: () => { try { save({ ...prefs, fontSize: Math.min(28, (prefs.fontSize ?? 14) + 1) }); } catch {} } });
+    registry.register({ id: 'zoom-out', title: 'Zoom Out', run: () => { try { save({ ...prefs, fontSize: Math.max(10, (prefs.fontSize ?? 14) - 1) }); } catch {} } });
+    registry.register({ id: 'zoom-reset', title: 'Zoom Reset', run: () => { try { save({ ...prefs, fontSize: 14 }); } catch {} } });
+    registry.register({ id: 'toggle-left-rail', title: 'Toggle Left Rail', run: () => {
+      const next = leftRail === 'workspace' ? 'search' : 'workspace';
+      setLeftRail(next);
+      try { localStorage.setItem('rainvibe.ui.leftRail', next); } catch {}
+    }});
+    registry.register({ id: 'focus-editor', title: 'Focus Editor', run: () => window.dispatchEvent(new CustomEvent('rainvibe:goto', { detail: { line: 1, col: 1 } } as any)) });
+    registry.register({ id: 'clear-recent', title: 'Clear Recent Files', run: () => { try { localStorage.removeItem('rainvibe.recent'); } catch {} } });
+    registry.register({ id: 'switch-provider-local', title: 'Switch Provider: Local', run: () => { try { save({ ...prefs, provider: 'local' }); } catch {} } });
+    registry.register({ id: 'switch-provider-chatgpt', title: 'Switch Provider: ChatGPT', run: () => { try { save({ ...prefs, provider: 'chatgpt' }); } catch {} } });
+    registry.register({ id: 'replace-in-file', title: 'Replace in File…', run: () => trigger('editor.action.startFindReplaceAction') });
+    registry.register({ id: 'open-welcome', title: 'Open Welcome Buffer', run: () => open('WELCOME.ts') });
     registry.register({ id: 'open-file', title: 'Open File…', run: () => {
       const path = prompt('Enter relative path to open:');
       if (path) open(path);
@@ -281,6 +298,7 @@ const App: React.FC = () => {
               diagnostics={diagnostics}
               minimap={prefs.minimap}
               fontSize={prefs.fontSize}
+              wordWrap={!!prefs.wordWrap}
               onReady={({ revealPosition, trigger }) => {
                 registry.register({ id: 'go-to-line', title: 'Go to Line…', run: () => {
                   const v = prompt('Line:Column');

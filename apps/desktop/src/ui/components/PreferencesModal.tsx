@@ -43,6 +43,10 @@ const PreferencesModal: React.FC<Props> = ({ open, onClose }) => {
           <label className="block">Font size
             <input type="number" min={10} max={28} className="mt-1 bg-black border border-white/15 rounded px-2 py-1 w-full" value={local.fontSize ?? 14} onChange={(e) => setLocal({ ...local, fontSize: Number(e.target.value) || 14 })} />
           </label>
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={!!local.wordWrap} onChange={(e) => setLocal({ ...local, wordWrap: e.target.checked })} />
+            <span>Editor word wrap</span>
+          </label>
         </div>
         <div className="mt-4 flex justify-end gap-2">
           <button onClick={onClose} className="px-3 py-1 border border-white/15 rounded hover:bg-white/10">Cancel</button>
