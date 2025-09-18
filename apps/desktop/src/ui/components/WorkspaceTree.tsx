@@ -22,7 +22,9 @@ const WorkspaceTree: React.FC = () => {
     window.addEventListener('rainvibe:filter', handler as any);
     const refreshHandler = () => refresh();
     window.addEventListener('rainvibe:workspace:refresh', refreshHandler as any);
-    return () => { window.removeEventListener('rainvibe:filter', handler as any); window.removeEventListener('rainvibe:workspace:refresh', refreshHandler as any); };
+    const cwdHandler = (e: any) => { const path = String(e?.detail || ''); setCwd(path); };
+    window.addEventListener('rainvibe:cwd', cwdHandler as any);
+    return () => { window.removeEventListener('rainvibe:filter', handler as any); window.removeEventListener('rainvibe:workspace:refresh', refreshHandler as any); window.removeEventListener('rainvibe:cwd', cwdHandler as any); };
   }, []);
   const filtered = entries.filter(e => e.name.toLowerCase().includes(filter.toLowerCase()) || e.path.toLowerCase().includes(filter.toLowerCase()));
   const { open } = useBuffers();
