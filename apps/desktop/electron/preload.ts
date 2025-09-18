@@ -129,5 +129,38 @@ contextBridge.exposeInMainWorld('rainvibe', {
       return true;
     } catch { return false; }
   }
+  ,
+  mkdir(relPath: string): boolean {
+    try {
+      const abs = path.resolve(repoRoot(), relPath);
+      if (!abs.startsWith(repoRoot())) return false;
+      fs.mkdirSync(abs, { recursive: true });
+      return true;
+    } catch { return false; }
+  }
+  ,
+  renamePath(fromRel: string, toRel: string): boolean {
+    try {
+      const from = path.resolve(repoRoot(), fromRel);
+      const to = path.resolve(repoRoot(), toRel);
+      if (!from.startsWith(repoRoot()) || !to.startsWith(repoRoot())) return false;
+      fs.mkdirSync(path.dirname(to), { recursive: true });
+      fs.renameSync(from, to);
+      return true;
+    } catch { return false; }
+  }
+  ,
+  deletePath(relPath: string): boolean {
+    try {
+      const abs = path.resolve(repoRoot(), relPath);
+      if (!abs.startsWith(repoRoot())) return false;
+      if (fs.existsSync(abs)) {
+        const stat = fs.statSync(abs);
+        if (stat.isDirectory()) fs.rmSync(abs, { recursive: true, force: true });
+        else fs.rmSync(abs, { force: true });
+      }
+      return true;
+    } catch { return false; }
+  }
 });
 

@@ -180,6 +180,7 @@ const App: React.FC = () => {
     }});
     registry.register({ id: 'focus-editor', title: 'Focus Editor', run: () => window.dispatchEvent(new CustomEvent('rainvibe:goto', { detail: { line: 1, col: 1 } } as any)) });
     registry.register({ id: 'clear-recent', title: 'Clear Recent Files', run: () => { try { localStorage.removeItem('rainvibe.recent'); } catch {} } });
+    registry.register({ id: 'refresh-workspace', title: 'Refresh Workspace', run: () => window.dispatchEvent(new CustomEvent('rainvibe:filter', { detail: filter || '' } as any)) });
     registry.register({ id: 'switch-provider-local', title: 'Switch Provider: Local', run: () => { try { save({ ...prefs, provider: 'local' }); } catch {} } });
     registry.register({ id: 'switch-provider-chatgpt', title: 'Switch Provider: ChatGPT', run: () => { try { save({ ...prefs, provider: 'chatgpt' }); } catch {} } });
     registry.register({ id: 'replace-in-file', title: 'Replace in File…', run: () => trigger('editor.action.startFindReplaceAction') });

@@ -12,6 +12,9 @@ declare global {
       appendAudit?: (line: string) => boolean;
       revealInOS?: (relPath: string) => boolean;
       writeBytesBase64?: (relPath: string, base64: string) => boolean;
+      mkdir?: (relPath: string) => boolean;
+      renamePath?: (fromRel: string, toRel: string) => boolean;
+      deletePath?: (relPath: string) => boolean;
     };
   }
 }
