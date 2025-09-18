@@ -63,6 +63,10 @@ const PreferencesModal: React.FC<Props> = ({ open, onClose }) => {
             <input type="checkbox" checked={!!(local as any).autosave} onChange={(e) => setLocal({ ...local, autosave: e.target.checked } as any)} />
             <span>Autosave buffers</span>
           </label>
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={!!(local as any).formatOnSave} onChange={(e) => setLocal({ ...local, formatOnSave: e.target.checked } as any)} />
+            <span>Format on save</span>
+          </label>
         </div>
         <div className="mt-4 flex justify-end gap-2">
           <button onClick={onClose} className="px-3 py-1 border border-white/15 rounded hover:bg-white/10">Cancel</button>
