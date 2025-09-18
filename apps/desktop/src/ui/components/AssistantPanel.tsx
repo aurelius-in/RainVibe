@@ -21,6 +21,14 @@ interface Props {
 
 const AssistantPanel: React.FC<Props> = ({ open, audit, diagnostics, onOpenPath, policyEnabled, onTogglePolicy, navImports, onClearDiagnostics, onOpenDiagnostic }) => {
   const [tab, setTab] = React.useState<Tab>('Chat');
+  React.useEffect(() => {
+    const handler = (e: any) => {
+      const t = (e?.detail as string) as Tab;
+      if (t && (tabs as any).includes(t)) setTab(t);
+    };
+    window.addEventListener('rainvibe:assistantTab', handler as any);
+    return () => window.removeEventListener('rainvibe:assistantTab', handler as any);
+  }, []);
   if (!open) return null;
   return (
     <div className="h-full w-full flex flex-col">

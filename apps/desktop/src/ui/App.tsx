@@ -154,6 +154,9 @@ const App: React.FC = () => {
       const input = document.getElementById('flows-new') as HTMLInputElement | null;
       if (title && input) { input.value = title; const click = input.nextElementSibling as HTMLButtonElement | null; click?.click(); }
     }});
+    registry.register({ id: 'open-diagnostics-tab', title: 'Open Diagnostics Tab', run: () => {
+      window.dispatchEvent(new CustomEvent('rainvibe:assistantTab', { detail: 'Diagnostics' }));
+    }});
   }, [setModes, togglePolicy]);
 
   React.useEffect(() => {
