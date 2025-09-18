@@ -12,10 +12,12 @@ interface Props {
   wordWrap?: boolean;
   lineNumbers?: boolean;
   renderWhitespace?: boolean;
-  onReady?: (api: { revealPosition: (line: number, column: number) => void; trigger: (actionId: string) => void }) => void;
+  onReady?: (api: { revealPosition: (line: number, column: number) => void; trigger: (actionId: string) => void; insertText: (text: string) => void; getSelectionText: () => string; getCursor: () => { line: number; column: number } }) => void;
+  onCursorChange?: (pos: { line: number; column: number }) => void;
+  onSelectionChange?: (text: string) => void;
 }
 
-const EditorHost: React.FC<Props> = ({ value, language, onChange, inlineAutocompleteEnabled, diagnostics, minimap, fontSize, wordWrap, lineNumbers, renderWhitespace, onReady }) => {
+const EditorHost: React.FC<Props> = ({ value, language, onChange, inlineAutocompleteEnabled, diagnostics, minimap, fontSize, wordWrap, lineNumbers, renderWhitespace, onReady, onCursorChange, onSelectionChange }) => {
   const editorRef = React.useRef<any>(null);
   const monacoRef = React.useRef<any>(null);
 
@@ -32,6 +34,20 @@ const EditorHost: React.FC<Props> = ({ value, language, onChange, inlineAutocomp
             if (action) { await action.run(); return; }
             editorRef.current.trigger('keyboard', actionId, null);
           } catch {}
+        },
+        insertText: (text: string) => {
+          try {
+            const sel = editorRef.current.getSelection();
+            const range = sel ?? editorRef.current.getModel().getFullModelRange();
+            editorRef.current.executeEdits('insert', [{ range, text, forceMoveMarkers: true }]);
+            editorRef.current.focus();
+          } catch {}
+        },
+        getSelectionText: () => {
+          try { return editorRef.current.getModel().getValueInRange(editorRef.current.getSelection()); } catch { return ''; }
+        },
+        getCursor: () => {
+          try { const p = editorRef.current.getPosition(); return { line: p.lineNumber, column: p.column }; } catch { return { line: 1, column: 1 }; }
         }
       });
     }
@@ -48,6 +64,17 @@ const EditorHost: React.FC<Props> = ({ value, language, onChange, inlineAutocomp
     window.addEventListener('rainvibe:goto', handler as any);
     return () => window.removeEventListener('rainvibe:goto', handler as any);
   }, [editorRef.current]);
+
+  React.useEffect(() => {
+    if (!editorRef.current) return;
+    const d1 = editorRef.current.onDidChangeCursorPosition?.(() => {
+      try { const p = editorRef.current.getPosition(); onCursorChange?.({ line: p.lineNumber, column: p.column }); } catch {}
+    });
+    const d2 = editorRef.current.onDidChangeCursorSelection?.(() => {
+      try { const text = editorRef.current.getModel().getValueInRange(editorRef.current.getSelection()); onSelectionChange?.(text); } catch {}
+    });
+    return () => { try { d1?.dispose?.(); d2?.dispose?.(); } catch {} };
+  }, [editorRef.current, onCursorChange, onSelectionChange]);
 
   React.useEffect(() => {
     if (!editorRef.current || !monacoRef.current) return;
