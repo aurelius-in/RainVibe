@@ -50,6 +50,7 @@ const StatusBar: React.FC<{ modes: string[]; policyOn: boolean; policyCount: num
       {typeof dirtyCount === 'number' && <span>dirty: {dirtyCount}</span>}
       {caret && <span>{language ? `${language} — ` : ''}{branch ? `${branch} — ` : ''}{caret.line}:{caret.column}</span>}
       <span>UTF-8 LF</span>
+      <span>{`ln:${counts?.lines ?? 0} wd:${counts?.words ?? 0}`}</span>
       {tokenMeter !== false && (
         <button onClick={onClickTokens} className={`underline-offset-2 hover:underline ${tokensPct > 80 ? 'text-red-400' : tokensPct > 60 ? 'text-yellow-300' : ''}`}>
           tokens: {Math.min(100, Math.max(0, Math.round(tokensPct)))}%
@@ -147,6 +148,12 @@ const App: React.FC = () => {
   const tokensPct = React.useMemo(() => {
     const len = (active?.content || '').length;
     return Math.min(100, (len / 4000) * 100);
+  }, [active?.content]);
+  const counts = React.useMemo(() => {
+    const text = active?.content || '';
+    const lines = text ? text.split('\n').length : 0;
+    const words = text ? (text.trim().split(/\s+/).filter(Boolean).length) : 0;
+    return { lines, words };
   }, [active?.content]);
 
   React.useEffect(() => {
@@ -296,6 +303,9 @@ const App: React.FC = () => {
     registry.register({ id: 'toggle-block-comment', title: 'Toggle Block Comment', run: () => trigger('editor.action.blockComment') });
     registry.register({ id: 'select-occurrences', title: 'Select All Occurrences', run: () => trigger('editor.action.selectHighlights') });
     registry.register({ id: 'format-selection', title: 'Format Selection', run: () => trigger('editor.action.formatSelection') });
+                registry.register({ id: 'indent-line', title: 'Indent Line', run: () => trigger('editor.action.indentLines') });
+                registry.register({ id: 'outdent-line', title: 'Outdent Line', run: () => trigger('editor.action.outdentLines') });
+                registry.register({ id: 'go-to-matching-bracket', title: 'Go to Matching Bracket', run: () => trigger('editor.action.jumpToBracket') });
     registry.register({ id: 'copy-selection-md', title: 'Copy Selection as Markdown', run: async () => {
       try { const sel = window.getSelection?.()?.toString?.() || ''; if (sel) await navigator.clipboard.writeText('```\n' + sel + '\n```'); } catch {}
     }});

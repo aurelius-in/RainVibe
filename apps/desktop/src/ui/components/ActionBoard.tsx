@@ -30,7 +30,13 @@ const ActionBoard: React.FC<Props> = ({ open, commands, onClose }) => {
       }
       return commands;
     }
-    return commands.filter(c => c.title.toLowerCase().includes(q.toLowerCase()));
+    if (q.startsWith('!')) {
+      const id = q.slice(1).trim();
+      const exact = commands.find(c => c.id === id);
+      if (exact) return [exact];
+    }
+    const lower = q.toLowerCase();
+    return commands.filter(c => c.title.toLowerCase().includes(lower) || c.id.toLowerCase().includes(lower));
   }, [q, commands]);
   return (
     <div className="fixed inset-0 bg-black/60 flex items-start justify-center pt-24" onClick={onClose}>

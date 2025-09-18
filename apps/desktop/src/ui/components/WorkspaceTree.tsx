@@ -45,9 +45,9 @@ const WorkspaceTree: React.FC = () => {
           <div
             key={e.path}
             onDoubleClick={() => { if (e.isDir) setCwd(e.path); else open(e.path); }}
-            onClick={() => !e.isDir && open(e.path)}
+            onClick={() => { setMenu({ x: 0, y: 0, entry: e }); if (!e.isDir) open(e.path); }}
             onContextMenu={(ev) => { ev.preventDefault(); setMenu({ x: ev.clientX, y: ev.clientY, entry: e }); }}
-            className="flex items-center gap-2 px-2 py-1 hover:bg-white/10 rounded cursor-pointer"
+            className={`flex items-center gap-2 px-2 py-1 rounded cursor-pointer ${menu?.entry?.path===e.path ? 'bg-white/10' : 'hover:bg-white/10'}`}
             title={e.path}
           >
             <span className="opacity-60">{e.isDir ? '📁' : '📄'}</span>
