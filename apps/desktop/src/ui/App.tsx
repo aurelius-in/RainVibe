@@ -116,6 +116,7 @@ const App: React.FC = () => {
     registry.register({ id: 'reveal-in-workspace', title: 'Reveal in Workspace', run: () => {
       const name = active?.path?.split('/')?.pop() || '';
       window.dispatchEvent(new CustomEvent('rainvibe:filter', { detail: name }));
+      setLeftRail('workspace');
     }});
     registry.register({ id: 'clear-workspace-filter', title: 'Clear Workspace Filter', run: () => {
       window.dispatchEvent(new CustomEvent('rainvibe:filter', { detail: '' }));
@@ -192,6 +193,9 @@ const App: React.FC = () => {
     }});
     registry.register({ id: 'open-exports-folder', title: 'Open Exports Folder', run: () => {
       try { (window as any).rainvibe?.revealInOS?.('.rainvibe/exports'); } catch {}
+    }});
+    registry.register({ id: 'open-org-folder', title: 'Open Org Pack Folder', run: () => {
+      try { (window as any).rainvibe?.revealInOS?.('.rainvibe'); } catch {}
     }});
   }, [setModes, togglePolicy]);
 
