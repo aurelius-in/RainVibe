@@ -34,6 +34,11 @@ const ChatTab: React.FC = () => {
     if (!slash && modes.includes('Coach')) {
       slash = 'Coach: here are a few hints → options → solution.';
     }
+    if (!slash && trimmed.startsWith('/mode ')) {
+      const name = trimmed.split(/\s+/)[1];
+      window.dispatchEvent(new CustomEvent('rainvibe:switch-mode', { detail: name }));
+      slash = `Mode switched to ${name}`;
+    }
     if (slash) {
       setMessages((m) => [...m, { role: 'assistant', content: slash }]);
       return;
@@ -41,6 +46,16 @@ const ChatTab: React.FC = () => {
     const reply = await chat([{ role: 'user', content: trimmed } as any]);
     const hint = prefs.offlineOnly ? ' (offline)' : '';
     setMessages((m) => [...m, { role: 'assistant', content: reply + hint }]);
+  };
+
+  const insertLastReply = () => {
+    const last = [...messages].reverse().find(m => m.role === 'assistant');
+    if (!last) return;
+    window.dispatchEvent(new CustomEvent('rainvibe:insert-text', { detail: last.content } as any));
+  };
+
+  const sendSelection = () => {
+    window.dispatchEvent(new CustomEvent('rainvibe:get-selection', { detail: {} } as any));
   };
 
   return (
@@ -57,6 +72,8 @@ const ChatTab: React.FC = () => {
       <div className="mt-2 flex gap-2">
         <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSend(); } }} className="flex-1 px-2 py-1 bg-black text-white border border-white/15 rounded" placeholder="Message" />
         <button onClick={onSend} className="px-3 py-1 border border-white/15 rounded hover:bg-white/10">Send</button>
+        <button onClick={insertLastReply} className="px-3 py-1 border border-white/15 rounded hover:bg-white/10">Insert ↘︎</button>
+        <button onClick={sendSelection} className="px-3 py-1 border border-white/15 rounded hover:bg-white/10">Use Selection</button>
       </div>
     </div>
   );

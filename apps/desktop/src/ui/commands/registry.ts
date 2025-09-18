@@ -14,6 +14,10 @@ class CommandRegistry {
   getAll(): Command[] {
     return Array.from(this.commands.values());
   }
+
+  get(id: string): Command | undefined {
+    return this.commands.get(id);
+  }
 }
 
 export const registry = new CommandRegistry();

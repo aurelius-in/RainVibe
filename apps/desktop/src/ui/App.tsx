@@ -37,7 +37,7 @@ const TopBar: React.FC<{ modes: string[]; onChange: (m: string[]) => void; onOpe
   );
 };
 
-const StatusBar: React.FC<{ modes: string[]; policyOn: boolean; policyCount: number; auditCount: number; changesCount: number; dirtyCount?: number; model: string; provider: string; offline: boolean; tokensPct: number; tokenMeter?: boolean; onClickPolicy?: () => void; onClickAudit?: () => void; onClickModel?: () => void; onClickChanges?: () => void; onClickTokens?: () => void }>= ({ modes, policyOn, policyCount, auditCount, changesCount, dirtyCount, model, provider, offline, tokensPct, tokenMeter, onClickPolicy, onClickAudit, onClickModel, onClickChanges, onClickTokens }) => {
+const StatusBar: React.FC<{ modes: string[]; policyOn: boolean; policyCount: number; auditCount: number; changesCount: number; dirtyCount?: number; caret?: { line: number; column: number }; language?: string; model: string; provider: string; offline: boolean; tokensPct: number; tokenMeter?: boolean; onClickPolicy?: () => void; onClickAudit?: () => void; onClickModel?: () => void; onClickChanges?: () => void; onClickTokens?: () => void }>= ({ modes, policyOn, policyCount, auditCount, changesCount, dirtyCount, caret, language, model, provider, offline, tokensPct, tokenMeter, onClickPolicy, onClickAudit, onClickModel, onClickChanges, onClickTokens }) => {
   return (
     <div className="h-6 text-xs px-3 flex items-center gap-4 border-t border-white/10 bg-black text-white/80">
       <button onClick={onClickModel} className="underline-offset-2 hover:underline">model: {model}</button>
@@ -47,6 +47,7 @@ const StatusBar: React.FC<{ modes: string[]; policyOn: boolean; policyCount: num
       <button onClick={onClickAudit} className="underline-offset-2 hover:underline">audit: {auditCount}</button>
       <button onClick={onClickChanges} className="underline-offset-2 hover:underline">changes: {changesCount}</button>
       {typeof dirtyCount === 'number' && <span>dirty: {dirtyCount}</span>}
+      {caret && <span>ln {caret.line}, col {caret.column}{language ? ` — ${language}` : ''}</span>}
       {tokenMeter !== false && <button onClick={onClickTokens} className="underline-offset-2 hover:underline">tokens: {Math.min(100, Math.max(0, Math.round(tokensPct)))}%</button>}
     </div>
   );
@@ -73,6 +74,7 @@ const App: React.FC = () => {
   const [diffOriginal, setDiffOriginal] = React.useState('');
   const [diffModified, setDiffModified] = React.useState('');
   const [shortcutsOpen, setShortcutsOpen] = React.useState(false);
+  const [caret, setCaret] = React.useState<{ line: number; column: number }>({ line: 1, column: 1 });
   const [diagnostics, setDiagnostics] = React.useState<Array<{ message: string; severity: 'error' | 'warning' | 'info'; startLine: number; startColumn: number; endLine: number; endColumn: number }>>([]);
   const [changesCount, setChangesCount] = React.useState<number>(0);
   const dirtyCount = React.useMemo(() => buffers.filter(b => b.content !== (b.savedContent ?? '')).length, [buffers]);
@@ -84,7 +86,32 @@ const App: React.FC = () => {
   }, [assistantOpen]);
 
   React.useEffect(() => {
-    // Simple diagnostics: mark TODO as warning, FIXME as error
+    const modeHandler = (e: any) => {
+      const name = String(e?.detail || '');
+      if (!name) return;
+      if (['Basic','Coach','Bug Fixer','Policy-Safe','Compliance/Audit'].includes(name)) setModes([name] as any);
+    };
+    const insertHandler = (e: any) => {
+      const text = String(e?.detail || '');
+      if (!text) return;
+      // store for command to pull
+      try { localStorage.setItem('rainvibe.chat.last', text); } catch {}
+    };
+    const selectionHandler = () => {
+      // no-op: selection stored via command
+    };
+    window.addEventListener('rainvibe:switch-mode', modeHandler as any);
+    window.addEventListener('rainvibe:insert-text', insertHandler as any);
+    window.addEventListener('rainvibe:get-selection', selectionHandler as any);
+    return () => {
+      window.removeEventListener('rainvibe:switch-mode', modeHandler as any);
+      window.removeEventListener('rainvibe:insert-text', insertHandler as any);
+      window.removeEventListener('rainvibe:get-selection', selectionHandler as any);
+    };
+  }, [setModes]);
+
+  React.useEffect(() => {
+    // Simple diagnostics: mark TODO as warning, FIXME as error, NOTE as info
     const source = active?.content || '';
     const lines = source.split('\n');
     const next: Array<{ message: string; severity: 'error' | 'warning' | 'info'; startLine: number; startColumn: number; endLine: number; endColumn: number }> = [];
@@ -93,6 +120,8 @@ const App: React.FC = () => {
         next.push({ message: 'Contains FIXME', severity: 'error', startLine: idx + 1, startColumn: 1, endLine: idx + 1, endColumn: Math.max(1, line.length) });
       } else if (line.includes('TODO')) {
         next.push({ message: 'Contains TODO', severity: 'warning', startLine: idx + 1, startColumn: 1, endLine: idx + 1, endColumn: Math.max(1, line.length) });
+      } else if (line.includes('NOTE')) {
+        next.push({ message: 'Contains NOTE', severity: 'info', startLine: idx + 1, startColumn: 1, endLine: idx + 1, endColumn: Math.max(1, line.length) });
       }
     });
     setDiagnostics(next);
@@ -221,6 +250,10 @@ const App: React.FC = () => {
     registry.register({ id: 'switch-provider-local', title: 'Switch Provider: Local', run: () => { try { save({ ...prefs, provider: 'local' }); } catch {} } });
     registry.register({ id: 'switch-provider-chatgpt', title: 'Switch Provider: ChatGPT', run: () => { try { save({ ...prefs, provider: 'chatgpt' }); } catch {} } });
     registry.register({ id: 'replace-in-file', title: 'Replace in File…', run: () => trigger('editor.action.startFindReplaceAction') });
+    registry.register({ id: 'toggle-line-comment', title: 'Toggle Line Comment', run: () => trigger('editor.action.commentLine') });
+    registry.register({ id: 'toggle-block-comment', title: 'Toggle Block Comment', run: () => trigger('editor.action.blockComment') });
+    registry.register({ id: 'select-occurrences', title: 'Select All Occurrences', run: () => trigger('editor.action.selectHighlights') });
+    registry.register({ id: 'format-selection', title: 'Format Selection', run: () => trigger('editor.action.formatSelection') });
     registry.register({ id: 'open-welcome', title: 'Open Welcome Buffer', run: () => open('WELCOME.ts') });
     registry.register({ id: 'open-file', title: 'Open File…', run: () => {
       const path = prompt('Enter relative path to open:');
@@ -284,6 +317,8 @@ const App: React.FC = () => {
       const meta = e.ctrlKey || e.metaKey;
       if (meta && e.key.toLowerCase() === 'i') { setAssistantOpen(v => !v); e.preventDefault(); }
       if (meta && e.key.toLowerCase() === 'k') { setBoardOpen(true); e.preventDefault(); }
+      if (meta && (!e.shiftKey) && e.key.toLowerCase() === 'p') { setBoardOpen(true); e.preventDefault(); }
+      if (meta && e.shiftKey && e.key.toLowerCase() === 'p') { setBoardOpen(true); e.preventDefault(); }
       if (meta && e.key.toLowerCase() === 's') { save(activeId); e.preventDefault(); }
       if (meta && e.key.toLowerCase() === 'w') { // Close current
         if (e.shiftKey) { // Close others
@@ -370,6 +405,8 @@ const App: React.FC = () => {
                 registry.register({ id: 'select-line', title: 'Select Line', run: () => trigger('expandLineSelection') });
                 registry.register({ id: 'copy-selection', title: 'Copy Selection', run: () => trigger('editor.action.clipboardCopyAction') });
               }}
+              onCursorChange={(p) => setCaret(p)}
+              onSelectionChange={(_text) => { /* no-op now */ }}
             />
           </div>
         </main>
@@ -422,6 +459,8 @@ const App: React.FC = () => {
         offline={!!prefs.offlineOnly}
         tokensPct={tokensPct}
         tokenMeter={prefs.tokenMeter}
+        caret={caret}
+        language={active.language}
         onClickPolicy={() => window.dispatchEvent(new CustomEvent('rainvibe:assistantTab', { detail: 'Guardrails' }))}
         onClickAudit={() => window.dispatchEvent(new CustomEvent('rainvibe:assistantTab', { detail: 'Trails' }))}
         onClickModel={() => setPrefsOpen(true)}

@@ -5,6 +5,16 @@ const SearchPanel: React.FC = () => {
   const [q, setQ] = React.useState('');
   const [results, setResults] = React.useState<{ path: string }[]>([]);
   const { open } = useBuffers();
+  React.useEffect(() => {
+    const handler = (e: any) => {
+      const left = localStorage.getItem('rainvibe.ui.leftRail');
+      if (left === 'search') {
+        try { const el = document.getElementById('search-input') as HTMLInputElement | null; el?.focus(); } catch {}
+      }
+    };
+    window.addEventListener('focus', handler as any);
+    return () => window.removeEventListener('focus', handler as any);
+  }, []);
   const onSearch = () => {
     try {
       const entries = ((window as any).rainvibe?.listDir?.() ?? []) as Array<{ path: string; name: string; isDir: boolean }>;
@@ -15,7 +25,7 @@ const SearchPanel: React.FC = () => {
   return (
     <div className="h-full flex flex-col text-xs">
       <div className="flex gap-2 mb-2">
-        <input value={q} onChange={(e) => setQ(e.target.value)} className="flex-1 px-2 py-1 bg-black text-white border border-white/15 rounded" placeholder="Search files" />
+        <input id="search-input" value={q} onChange={(e) => setQ(e.target.value)} className="flex-1 px-2 py-1 bg-black text-white border border-white/15 rounded" placeholder="Search files" />
         <button onClick={onSearch} className="px-2 py-1 border border-white/15 rounded hover:bg-white/10">Search</button>
       </div>
       <div className="space-y-1 overflow-auto">
