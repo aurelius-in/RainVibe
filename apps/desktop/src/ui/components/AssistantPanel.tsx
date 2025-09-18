@@ -15,11 +15,12 @@ interface Props {
   policyEnabled?: boolean;
   onTogglePolicy?: () => void;
   navImports?: string[];
+  navOutline?: Array<{ line: number; text: string }>;
   onClearDiagnostics?: () => void;
   onOpenDiagnostic?: (line: number, column: number) => void;
 }
 
-const AssistantPanel: React.FC<Props> = ({ open, audit, diagnostics, onOpenPath, policyEnabled, onTogglePolicy, navImports, onClearDiagnostics, onOpenDiagnostic }) => {
+const AssistantPanel: React.FC<Props> = ({ open, audit, diagnostics, onOpenPath, policyEnabled, onTogglePolicy, navImports, navOutline, onClearDiagnostics, onOpenDiagnostic }) => {
   const [tab, setTab] = React.useState<Tab>('Chat');
   const [severity, setSeverity] = React.useState<'all' | 'error' | 'warning' | 'info'>('all');
   React.useEffect(() => {
@@ -150,17 +151,17 @@ const AssistantPanel: React.FC<Props> = ({ open, audit, diagnostics, onOpenPath,
         )}
         {tab === 'Navigation' && (
           <div className="space-y-2">
-            <div>
-              <div className="opacity-70 text-xs mb-1">Quick Outline</div>
-              <button onClick={() => {
-                try {
-                  const ev = new CustomEvent('rainvibe:assistantTab', { detail: 'Navigation' });
-                  window.dispatchEvent(ev);
-                  alert('Use the Quick Outline command for a full list');
-                } catch {}
-              }} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10 text-xs">Refresh</button>
+            <div className="opacity-70 text-xs mb-1">Outline</div>
+            <div className="space-y-1">
+              {(navOutline ?? []).map((o, i) => (
+                <button key={i} onClick={() => onOpenDiagnostic?.(o.line, 1)} className="w-full text-left border border-white/10 rounded px-2 py-1 hover:bg-white/10 text-xs">
+                  <span className="opacity-60 mr-2">{o.line}</span>
+                  {o.text}
+                </button>
+              ))}
+              {(navOutline?.length ?? 0) === 0 && <div className="opacity-60 text-xs">No outline symbols</div>}
             </div>
-            <div className="opacity-70 text-xs mb-1">Imports in active file</div>
+            <div className="opacity-70 text-xs mt-2">Imports</div>
             {(navImports ?? []).map((m, i) => (
               <div key={i} className="border border-white/10 rounded px-2 py-1 text-xs">{m}</div>
             ))}

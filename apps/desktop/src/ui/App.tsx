@@ -587,6 +587,14 @@ const App: React.FC = () => {
             policyEnabled={policy.enabled}
             onTogglePolicy={() => togglePolicy()}
             navImports={(active?.content.match(/import\s+[^;]+;/g) || []).map(s => s.trim())}
+            navOutline={(() => {
+              const src = active?.content || '';
+              const lines = src.split('\n');
+              const out: Array<{ line: number; text: string }> = [];
+              const rx = /(class\s+\w+|function\s+\w+|const\s+\w+\s*=\s*\(|export\s+(?:default\s+)?class|export\s+function\s+\w+)/;
+              lines.forEach((ln, i) => { if (rx.test(ln)) out.push({ line: i+1, text: ln.trim().slice(0, 120) }); });
+              return out;
+            })()}
             onClearDiagnostics={() => setDiagnostics([])}
             onOpenDiagnostic={(line, col) => {
               // Create a command using last onReady
