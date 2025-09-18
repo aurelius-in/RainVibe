@@ -38,6 +38,10 @@ export function usePreferences() {
       return DEFAULTS;
     }
   });
+  // Autosave hook placeholder: consumers can watch prefs.autosave
+  React.useEffect(() => {
+    // no-op; reserved for future autosave timers
+  }, [prefs.autosave]);
   const save = (next: Preferences) => {
     setPrefs(next);
     try { localStorage.setItem(KEY, JSON.stringify(next)); } catch {}
