@@ -180,6 +180,7 @@ const App: React.FC = () => {
     }});
     registry.register({ id: 'focus-editor', title: 'Focus Editor', run: () => window.dispatchEvent(new CustomEvent('rainvibe:goto', { detail: { line: 1, col: 1 } } as any)) });
     registry.register({ id: 'clear-recent', title: 'Clear Recent Files', run: () => { try { localStorage.removeItem('rainvibe.recent'); } catch {} } });
+    registry.register({ id: 'refresh-workspace', title: 'Refresh Workspace', run: () => window.dispatchEvent(new CustomEvent('rainvibe:filter', { detail: filter || '' } as any)) });
     registry.register({ id: 'switch-provider-local', title: 'Switch Provider: Local', run: () => { try { save({ ...prefs, provider: 'local' }); } catch {} } });
     registry.register({ id: 'switch-provider-chatgpt', title: 'Switch Provider: ChatGPT', run: () => { try { save({ ...prefs, provider: 'chatgpt' }); } catch {} } });
     registry.register({ id: 'replace-in-file', title: 'Replace in File…', run: () => trigger('editor.action.startFindReplaceAction') });
@@ -247,6 +248,16 @@ const App: React.FC = () => {
       if (meta && e.key.toLowerCase() === 'i') { setAssistantOpen(v => !v); e.preventDefault(); }
       if (meta && e.key.toLowerCase() === 'k') { setBoardOpen(true); e.preventDefault(); }
       if (meta && e.key.toLowerCase() === 's') { save(activeId); e.preventDefault(); }
+      if (meta && e.key.toLowerCase() === 'w') { // Close current
+        if (e.shiftKey) { // Close others
+          if (activeId) closeOthers(activeId);
+        } else if (e.altKey) { // Close all
+          closeAll();
+        } else {
+          if (activeId) close(activeId);
+        }
+        e.preventDefault();
+      }
       if (meta && e.shiftKey && e.key === 'Enter') {
         setDiffOriginal(active?.content || '');
         setDiffModified((active?.content || '') + '\n// TODO: refine');
@@ -299,6 +310,8 @@ const App: React.FC = () => {
               minimap={prefs.minimap}
               fontSize={prefs.fontSize}
               wordWrap={!!prefs.wordWrap}
+              lineNumbers={!!prefs.lineNumbers}
+              renderWhitespace={!!prefs.renderWhitespace}
               onReady={({ revealPosition, trigger }) => {
                 registry.register({ id: 'go-to-line', title: 'Go to Line…', run: () => {
                   const v = prompt('Line:Column');

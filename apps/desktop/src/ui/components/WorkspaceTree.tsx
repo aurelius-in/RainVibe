@@ -22,6 +22,9 @@ const WorkspaceTree: React.FC = () => {
   }, []);
   const filtered = entries.filter(e => e.name.toLowerCase().includes(filter.toLowerCase()));
   const { open } = useBuffers();
+  const refresh = () => {
+    try { setEntries((window as any).rainvibe?.listDir?.() ?? []); } catch { setEntries([]); }
+  };
   return (
     <div className="h-full flex flex-col">
       <input placeholder="Search workspace" value={filter} onChange={(e) => { setFilter(e.target.value); try { localStorage.setItem('rainvibe.workspace.filter', e.target.value); } catch {} }} className="mb-2 px-2 py-1 bg-black text-white border border-white/15 rounded text-xs" />

@@ -47,6 +47,18 @@ const PreferencesModal: React.FC<Props> = ({ open, onClose }) => {
             <input type="checkbox" checked={!!local.wordWrap} onChange={(e) => setLocal({ ...local, wordWrap: e.target.checked })} />
             <span>Editor word wrap</span>
           </label>
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={!!local.lineNumbers} onChange={(e) => setLocal({ ...local, lineNumbers: e.target.checked })} />
+            <span>Show line numbers</span>
+          </label>
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={!!local.renderWhitespace} onChange={(e) => setLocal({ ...local, renderWhitespace: e.target.checked })} />
+            <span>Render whitespace</span>
+          </label>
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={!!local.tokenMeter} onChange={(e) => setLocal({ ...local, tokenMeter: e.target.checked })} />
+            <span>Show token meter</span>
+          </label>
         </div>
         <div className="mt-4 flex justify-end gap-2">
           <button onClick={onClose} className="px-3 py-1 border border-white/15 rounded hover:bg-white/10">Cancel</button>

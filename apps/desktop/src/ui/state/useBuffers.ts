@@ -5,15 +5,17 @@ export interface Buffer {
   path: string;
   language: string;
   content: string;
+  savedContent?: string;
 }
 
 export function useBuffers() {
   const [buffers, setBuffers] = React.useState<Buffer[]>(() => {
     try {
       const raw = localStorage.getItem('rainvibe.buffers');
-      return raw ? JSON.parse(raw) as Buffer[] : [{ id: 'welcome', path: 'WELCOME.ts', language: 'typescript', content: '// RainVibe — dark-only, Monaco-based IDE\n' }];
+      const parsed = raw ? JSON.parse(raw) as Buffer[] : [{ id: 'welcome', path: 'WELCOME.ts', language: 'typescript', content: '// RainVibe — dark-only, Monaco-based IDE\n' } as Buffer];
+      return parsed.map(b => ({ ...b, savedContent: b.savedContent ?? b.content }));
     } catch {
-      return [{ id: 'welcome', path: 'WELCOME.ts', language: 'typescript', content: '// RainVibe — dark-only, Monaco-based IDE\n' }];
+      return [{ id: 'welcome', path: 'WELCOME.ts', language: 'typescript', content: '// RainVibe — dark-only, Monaco-based IDE\n' } as Buffer];
     }
   });
   const [activeId, setActiveId] = React.useState<string>(() => {
@@ -39,7 +41,7 @@ export function useBuffers() {
       setBuffers(prev => {
         const exists = prev.find(b => b.id === id);
         if (exists) return prev;
-        return [...prev, { id, path: relPath, language: guessLang(relPath), content: String(text) }];
+        return [...prev, { id, path: relPath, language: guessLang(relPath), content: String(text), savedContent: String(text) }];
       });
       setActiveId(id);
       pushRecent(relPath);
@@ -51,12 +53,21 @@ export function useBuffers() {
     if (!buf) return false;
     try {
       const ok = !!(window as any).rainvibe?.writeTextFile?.(buf.path, buf.content);
-      if (ok) pushRecent(buf.path);
+      if (ok) {
+        pushRecent(buf.path);
+        setBuffers(prev => prev.map(b => b.id === id ? { ...b, savedContent: b.content } : b));
+      }
       return ok;
     } catch { return false; }
   };
 
   const close = (id: string) => {
+    const buf = buffers.find(b => b.id === id);
+    const dirty = buf ? buf.content !== (buf.savedContent ?? '') : false;
+    if (dirty) {
+      const ok = window.confirm('You have unsaved changes. Close anyway?');
+      if (!ok) return;
+    }
     setBuffers(prev => prev.filter(b => b.id !== id));
     if (activeId === id && buffers.length > 1) {
       const next = buffers.find(b => b.id !== id);
@@ -66,7 +77,7 @@ export function useBuffers() {
 
   const newBuffer = (name: string = `untitled-${Date.now()}.txt`) => {
     const id = name;
-    setBuffers(prev => [...prev, { id, path: name, language: guessLang(name), content: '' }]);
+    setBuffers(prev => [...prev, { id, path: name, language: guessLang(name), content: '', savedContent: '' }]);
     setActiveId(id);
   };
 
@@ -80,7 +91,9 @@ export function useBuffers() {
     setActiveId('welcome');
   };
 
-  return { buffers, activeId, setActiveId, update, open, save, close, newBuffer, closeOthers, closeAll };
+  const isDirty = (b: Buffer) => b.content !== (b.savedContent ?? '');
+
+  return { buffers, activeId, setActiveId, update, open, save, close, newBuffer, closeOthers, closeAll, isDirty };
 }
 
 function guessLang(p: string): string {
