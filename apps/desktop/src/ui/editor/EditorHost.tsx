@@ -31,7 +31,18 @@ const EditorHost: React.FC<Props> = ({ value, language, onChange, inlineAutocomp
         }
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const handler = (e: any) => {
+      try {
+        const { line, col } = e.detail || {};
+        if (typeof line === 'number' && typeof col === 'number') {
+          editorRef.current.revealPositionInCenter({ lineNumber: line, column: col });
+          editorRef.current.setPosition({ lineNumber: line, column: col });
+          editorRef.current.focus();
+        }
+      } catch {}
+    };
+    window.addEventListener('rainvibe:goto', handler as any);
+    return () => window.removeEventListener('rainvibe:goto', handler as any);
   }, [editorRef.current]);
 
   React.useEffect(() => {
