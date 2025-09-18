@@ -9,10 +9,11 @@ interface Props {
   diagnostics?: Array<{ message: string; severity: 'error' | 'warning' | 'info'; startLine: number; startColumn: number; endLine: number; endColumn: number }>
   minimap?: boolean;
   fontSize?: number;
+  wordWrap?: boolean;
   onReady?: (api: { revealPosition: (line: number, column: number) => void; trigger: (actionId: string) => void }) => void;
 }
 
-const EditorHost: React.FC<Props> = ({ value, language, onChange, inlineAutocompleteEnabled, diagnostics, minimap, fontSize, onReady }) => {
+const EditorHost: React.FC<Props> = ({ value, language, onChange, inlineAutocompleteEnabled, diagnostics, minimap, fontSize, wordWrap, onReady }) => {
   const editorRef = React.useRef<any>(null);
   const monacoRef = React.useRef<any>(null);
 
@@ -100,6 +101,7 @@ const EditorHost: React.FC<Props> = ({ value, language, onChange, inlineAutocomp
         fontLigatures: true,
         fontFamily: 'Consolas, "JetBrains Mono", "Source Code Pro", monospace',
         fontSize: fontSize ?? 14,
+        wordWrap: wordWrap ? 'on' : 'off',
         renderWhitespace: 'none',
         automaticLayout: true,
       }}
