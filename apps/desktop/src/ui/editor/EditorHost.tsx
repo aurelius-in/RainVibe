@@ -103,7 +103,7 @@ const EditorHost: React.FC<Props> = ({ value, language, onChange, inlineAutocomp
       height="100%"
       theme="vs-dark"
       value={value}
-      defaultLanguage={language}
+      language={language as any}
       onChange={(v) => onChange(v ?? '')}
       onMount={(editor, monaco) => {
         editorRef.current = editor;

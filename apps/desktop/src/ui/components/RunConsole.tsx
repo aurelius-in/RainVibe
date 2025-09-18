@@ -5,7 +5,9 @@ const RunConsole: React.FC = () => {
   const [cmd, setCmd] = React.useState('echo Hello RainVibe');
   const [out, setOut] = React.useState<string>('');
   const [busy, setBusy] = React.useState(false);
-  const [history, setHistory] = React.useState<string[]>([]);
+  const [history, setHistory] = React.useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem('rainvibe.run.history') || '[]'); } catch { return []; }
+  });
   const [hIdx, setHIdx] = React.useState<number>(-1);
   const onRun = async () => {
     setBusy(true);
@@ -16,6 +18,9 @@ const RunConsole: React.FC = () => {
     setHistory((prev) => [cmd, ...prev].slice(0, 50));
     setHIdx(-1);
   };
+  React.useEffect(() => {
+    try { localStorage.setItem('rainvibe.run.history', JSON.stringify(history)); } catch {}
+  }, [history]);
   const onClear = () => setOut('');
   const onCopy = async () => { try { await navigator.clipboard.writeText(out); } catch {} };
   const onSaveOut = () => {
