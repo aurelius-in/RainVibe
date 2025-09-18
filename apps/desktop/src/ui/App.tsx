@@ -37,7 +37,7 @@ const TopBar: React.FC<{ modes: string[]; onChange: (m: string[]) => void; onOpe
   );
 };
 
-const StatusBar: React.FC<{ modes: string[]; policyOn: boolean; policyCount: number; auditCount: number; changesCount: number; model: string; provider: string; offline: boolean; tokensPct: number; onClickPolicy?: () => void; onClickAudit?: () => void; onClickModel?: () => void; onClickChanges?: () => void }>= ({ modes, policyOn, policyCount, auditCount, changesCount, model, provider, offline, tokensPct, onClickPolicy, onClickAudit, onClickModel, onClickChanges }) => {
+const StatusBar: React.FC<{ modes: string[]; policyOn: boolean; policyCount: number; auditCount: number; changesCount: number; model: string; provider: string; offline: boolean; tokensPct: number; tokenMeter?: boolean; onClickPolicy?: () => void; onClickAudit?: () => void; onClickModel?: () => void; onClickChanges?: () => void; onClickTokens?: () => void }>= ({ modes, policyOn, policyCount, auditCount, changesCount, model, provider, offline, tokensPct, tokenMeter, onClickPolicy, onClickAudit, onClickModel, onClickChanges, onClickTokens }) => {
   return (
     <div className="h-6 text-xs px-3 flex items-center gap-4 border-t border-white/10 bg-black text-white/80">
       <button onClick={onClickModel} className="underline-offset-2 hover:underline">model: {model}</button>
@@ -46,7 +46,7 @@ const StatusBar: React.FC<{ modes: string[]; policyOn: boolean; policyCount: num
       <button onClick={onClickPolicy} className="underline-offset-2 hover:underline">policy: {policyOn ? `on (${policyCount})` : 'off'}</button>
       <button onClick={onClickAudit} className="underline-offset-2 hover:underline">audit: {auditCount}</button>
       <button onClick={onClickChanges} className="underline-offset-2 hover:underline">changes: {changesCount}</button>
-      <span>tokens: {Math.min(100, Math.max(0, Math.round(tokensPct)))}%</span>
+      {tokenMeter !== false && <button onClick={onClickTokens} className="underline-offset-2 hover:underline">tokens: {Math.min(100, Math.max(0, Math.round(tokensPct)))}%</button>}
     </div>
   );
 };
@@ -170,6 +170,15 @@ const App: React.FC = () => {
     registry.register({ id: 'toggle-word-wrap', title: 'Toggle Word Wrap', run: () => {
       try { save({ ...prefs, wordWrap: !prefs.wordWrap }); } catch {}
     }});
+    registry.register({ id: 'toggle-line-numbers', title: 'Toggle Line Numbers', run: () => {
+      try { save({ ...prefs, lineNumbers: !prefs.lineNumbers }); } catch {}
+    }});
+    registry.register({ id: 'toggle-whitespace', title: 'Toggle Render Whitespace', run: () => {
+      try { save({ ...prefs, renderWhitespace: !prefs.renderWhitespace }); } catch {}
+    }});
+    registry.register({ id: 'toggle-token-meter', title: 'Toggle Token Meter', run: () => {
+      try { save({ ...prefs, tokenMeter: !prefs.tokenMeter }); } catch {}
+    }});
     registry.register({ id: 'zoom-in', title: 'Zoom In', run: () => { try { save({ ...prefs, fontSize: Math.min(28, (prefs.fontSize ?? 14) + 1) }); } catch {} } });
     registry.register({ id: 'zoom-out', title: 'Zoom Out', run: () => { try { save({ ...prefs, fontSize: Math.max(10, (prefs.fontSize ?? 14) - 1) }); } catch {} } });
     registry.register({ id: 'zoom-reset', title: 'Zoom Reset', run: () => { try { save({ ...prefs, fontSize: 14 }); } catch {} } });
@@ -180,7 +189,7 @@ const App: React.FC = () => {
     }});
     registry.register({ id: 'focus-editor', title: 'Focus Editor', run: () => window.dispatchEvent(new CustomEvent('rainvibe:goto', { detail: { line: 1, col: 1 } } as any)) });
     registry.register({ id: 'clear-recent', title: 'Clear Recent Files', run: () => { try { localStorage.removeItem('rainvibe.recent'); } catch {} } });
-    registry.register({ id: 'refresh-workspace', title: 'Refresh Workspace', run: () => window.dispatchEvent(new CustomEvent('rainvibe:filter', { detail: filter || '' } as any)) });
+    registry.register({ id: 'refresh-workspace', title: 'Refresh Workspace', run: () => window.dispatchEvent(new CustomEvent('rainvibe:filter', { detail: '' } as any)) });
     registry.register({ id: 'switch-provider-local', title: 'Switch Provider: Local', run: () => { try { save({ ...prefs, provider: 'local' }); } catch {} } });
     registry.register({ id: 'switch-provider-chatgpt', title: 'Switch Provider: ChatGPT', run: () => { try { save({ ...prefs, provider: 'chatgpt' }); } catch {} } });
     registry.register({ id: 'replace-in-file', title: 'Replace in File…', run: () => trigger('editor.action.startFindReplaceAction') });
@@ -376,10 +385,12 @@ const App: React.FC = () => {
         provider={prefs.provider}
         offline={!!prefs.offlineOnly}
         tokensPct={tokensPct}
+        tokenMeter={prefs.tokenMeter}
         onClickPolicy={() => window.dispatchEvent(new CustomEvent('rainvibe:assistantTab', { detail: 'Guardrails' }))}
         onClickAudit={() => window.dispatchEvent(new CustomEvent('rainvibe:assistantTab', { detail: 'Trails' }))}
         onClickModel={() => setPrefsOpen(true)}
         onClickChanges={() => window.dispatchEvent(new CustomEvent('rainvibe:assistantTab', { detail: 'Changes' }))}
+        onClickTokens={() => setPrefsOpen(true)}
       />
       <ActionBoard
         open={boardOpen}
