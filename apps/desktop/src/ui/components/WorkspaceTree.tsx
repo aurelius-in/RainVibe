@@ -19,7 +19,9 @@ const WorkspaceTree: React.FC = () => {
       try { localStorage.setItem('rainvibe.workspace.filter', String(val)); } catch {}
     };
     window.addEventListener('rainvibe:filter', handler as any);
-    return () => window.removeEventListener('rainvibe:filter', handler as any);
+    const refreshHandler = () => refresh();
+    window.addEventListener('rainvibe:workspace:refresh', refreshHandler as any);
+    return () => { window.removeEventListener('rainvibe:filter', handler as any); window.removeEventListener('rainvibe:workspace:refresh', refreshHandler as any); };
   }, []);
   const filtered = entries.filter(e => e.name.toLowerCase().includes(filter.toLowerCase()) || e.path.toLowerCase().includes(filter.toLowerCase()));
   const { open } = useBuffers();

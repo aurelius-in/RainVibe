@@ -37,7 +37,7 @@ const TopBar: React.FC<{ modes: string[]; onChange: (m: string[]) => void; onOpe
   );
 };
 
-const StatusBar: React.FC<{ modes: string[]; policyOn: boolean; policyCount: number; auditCount: number; changesCount: number; model: string; provider: string; offline: boolean; tokensPct: number; tokenMeter?: boolean; onClickPolicy?: () => void; onClickAudit?: () => void; onClickModel?: () => void; onClickChanges?: () => void; onClickTokens?: () => void }>= ({ modes, policyOn, policyCount, auditCount, changesCount, model, provider, offline, tokensPct, tokenMeter, onClickPolicy, onClickAudit, onClickModel, onClickChanges, onClickTokens }) => {
+const StatusBar: React.FC<{ modes: string[]; policyOn: boolean; policyCount: number; auditCount: number; changesCount: number; dirtyCount?: number; model: string; provider: string; offline: boolean; tokensPct: number; tokenMeter?: boolean; onClickPolicy?: () => void; onClickAudit?: () => void; onClickModel?: () => void; onClickChanges?: () => void; onClickTokens?: () => void }>= ({ modes, policyOn, policyCount, auditCount, changesCount, dirtyCount, model, provider, offline, tokensPct, tokenMeter, onClickPolicy, onClickAudit, onClickModel, onClickChanges, onClickTokens }) => {
   return (
     <div className="h-6 text-xs px-3 flex items-center gap-4 border-t border-white/10 bg-black text-white/80">
       <button onClick={onClickModel} className="underline-offset-2 hover:underline">model: {model}</button>
@@ -46,6 +46,7 @@ const StatusBar: React.FC<{ modes: string[]; policyOn: boolean; policyCount: num
       <button onClick={onClickPolicy} className="underline-offset-2 hover:underline">policy: {policyOn ? `on (${policyCount})` : 'off'}</button>
       <button onClick={onClickAudit} className="underline-offset-2 hover:underline">audit: {auditCount}</button>
       <button onClick={onClickChanges} className="underline-offset-2 hover:underline">changes: {changesCount}</button>
+      {typeof dirtyCount === 'number' && <span>dirty: {dirtyCount}</span>}
       {tokenMeter !== false && <button onClick={onClickTokens} className="underline-offset-2 hover:underline">tokens: {Math.min(100, Math.max(0, Math.round(tokensPct)))}%</button>}
     </div>
   );
@@ -74,6 +75,7 @@ const App: React.FC = () => {
   const [shortcutsOpen, setShortcutsOpen] = React.useState(false);
   const [diagnostics, setDiagnostics] = React.useState<Array<{ message: string; severity: 'error' | 'warning' | 'info'; startLine: number; startColumn: number; endLine: number; endColumn: number }>>([]);
   const [changesCount, setChangesCount] = React.useState<number>(0);
+  const dirtyCount = React.useMemo(() => buffers.filter(b => b.content !== (b.savedContent ?? '')).length, [buffers]);
   React.useEffect(() => {
     try { document.title = `RainVibe — ${active?.path ?? ''}`; } catch {}
   }, [active?.path]);
@@ -189,7 +191,33 @@ const App: React.FC = () => {
     }});
     registry.register({ id: 'focus-editor', title: 'Focus Editor', run: () => window.dispatchEvent(new CustomEvent('rainvibe:goto', { detail: { line: 1, col: 1 } } as any)) });
     registry.register({ id: 'clear-recent', title: 'Clear Recent Files', run: () => { try { localStorage.removeItem('rainvibe.recent'); } catch {} } });
-    registry.register({ id: 'refresh-workspace', title: 'Refresh Workspace', run: () => window.dispatchEvent(new CustomEvent('rainvibe:filter', { detail: '' } as any)) });
+    registry.register({ id: 'refresh-workspace', title: 'Refresh Workspace', run: () => window.dispatchEvent(new CustomEvent('rainvibe:workspace:refresh')) });
+    registry.register({ id: 'new-folder', title: 'New Folder…', run: () => {
+      const p = prompt('New folder path (relative):');
+      if (!p) return;
+      try { (window as any).rainvibe?.mkdir?.(p); window.dispatchEvent(new CustomEvent('rainvibe:workspace:refresh')); } catch {}
+    }});
+    registry.register({ id: 'rename-current-file', title: 'Rename Current File…', run: () => {
+      if (!active?.path) return;
+      const to = prompt('Rename to (relative path):', active.path);
+      if (!to || to === active.path) return;
+      try {
+        const ok = (window as any).rainvibe?.renamePath?.(active.path, to);
+        if (ok) {
+          // Reload buffer with new path
+          const txt = (window as any).rainvibe?.readTextFile?.(to) ?? active.content;
+          update(active.id, String(txt));
+          window.dispatchEvent(new CustomEvent('rainvibe:workspace:refresh'));
+        }
+      } catch {}
+    }});
+    registry.register({ id: 'delete-current-file', title: 'Delete Current File…', run: () => {
+      if (!active?.path) return;
+      const ok = confirm(`Delete ${active.path}?`);
+      if (!ok) return;
+      try { (window as any).rainvibe?.deletePath?.(active.path); close(active.id); window.dispatchEvent(new CustomEvent('rainvibe:workspace:refresh')); } catch {}
+    }});
+    registry.register({ id: 'reveal-current-in-os', title: 'Reveal Current File in OS', run: () => { if (active?.path) { try { (window as any).rainvibe?.revealInOS?.(active.path); } catch {} } }});
     registry.register({ id: 'switch-provider-local', title: 'Switch Provider: Local', run: () => { try { save({ ...prefs, provider: 'local' }); } catch {} } });
     registry.register({ id: 'switch-provider-chatgpt', title: 'Switch Provider: ChatGPT', run: () => { try { save({ ...prefs, provider: 'chatgpt' }); } catch {} } });
     registry.register({ id: 'replace-in-file', title: 'Replace in File…', run: () => trigger('editor.action.startFindReplaceAction') });
@@ -334,6 +362,11 @@ const App: React.FC = () => {
                 registry.register({ id: 'find-in-file', title: 'Find in File…', run: () => trigger('actions.find') });
                 registry.register({ id: 'find-next', title: 'Find Next', run: () => trigger('editor.action.nextMatchFindAction') });
                 registry.register({ id: 'find-previous', title: 'Find Previous', run: () => trigger('editor.action.previousMatchFindAction') });
+                registry.register({ id: 'copy-line', title: 'Copy Line', run: () => trigger('editor.action.clipboardCopyAction') });
+                registry.register({ id: 'duplicate-line', title: 'Duplicate Line', run: () => trigger('editor.action.copyLinesDownAction') });
+                registry.register({ id: 'delete-line', title: 'Delete Line', run: () => trigger('editor.action.deleteLines') });
+                registry.register({ id: 'move-line-up', title: 'Move Line Up', run: () => trigger('editor.action.moveLinesUpAction') });
+                registry.register({ id: 'move-line-down', title: 'Move Line Down', run: () => trigger('editor.action.moveLinesDownAction') });
               }}
             />
           </div>
@@ -381,6 +414,7 @@ const App: React.FC = () => {
         policyCount={(policy as any)?.ruleFiles?.length ?? 0}
         auditCount={events.length}
         changesCount={changesCount}
+        dirtyCount={dirtyCount}
         model={prefs.model}
         provider={prefs.provider}
         offline={!!prefs.offlineOnly}
