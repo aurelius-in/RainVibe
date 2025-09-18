@@ -77,6 +77,7 @@ const AssistantPanel: React.FC<Props> = ({ open, audit, diagnostics, onOpenPath,
               <button onClick={() => audit?.onExport('html')} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10">Export HTML</button>
               <button onClick={() => audit?.onExport('jsonl')} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10">Export JSONL</button>
               <button onClick={() => audit?.onExport('pdf')} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10">Export PDF</button>
+              <button onClick={() => { try { (window as any).rainvibe?.clearAudit?.(); } catch {} }} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10">Clear</button>
             </div>
             <div className="space-y-1">
               {(audit?.events ?? []).map(e => (
@@ -114,16 +115,31 @@ const AssistantPanel: React.FC<Props> = ({ open, audit, diagnostics, onOpenPath,
         )}
         {tab === 'Changes' && (
           <div className="space-y-2">
-            <button onClick={() => setTab('Changes')} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10">Refresh</button>
+            <div className="flex flex-wrap gap-2">
+              <button onClick={() => setTab('Changes')} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10">Refresh</button>
+              <button onClick={() => (window as any).rainvibe?.gitAdd?.()} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10">Stage All</button>
+              <button onClick={() => { const m = prompt('Commit message:'); if (m) (window as any).rainvibe?.gitCommit?.(m); }} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10">Commit…</button>
+              <button onClick={() => { const msg = prompt('Stash message (optional):') || undefined; (window as any).rainvibe?.gitStash?.(msg); }} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10">Stash…</button>
+              <button onClick={() => { const b = prompt('Create branch:'); if (b) (window as any).rainvibe?.gitCheckout?.(b, true); }} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10">New Branch…</button>
+              <button onClick={() => { const b = prompt('Switch to branch:'); if (b) (window as any).rainvibe?.gitCheckout?.(b, false); }} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10">Switch Branch…</button>
+            </div>
             <div className="space-y-1">
               {(() => {
                 try {
                   const entries = (window as any).rainvibe?.gitStatus?.() || [];
                   if (!entries.length) return <div className="opacity-60">No changes</div>;
                   return entries.map((e: any, i: number) => (
-                    <div key={i} className="border border-white/10 rounded px-2 py-1 text-xs hover:bg-white/10 cursor-pointer" onClick={() => onOpenPath && onOpenPath(e.path)}>
-                      <span className="opacity-70 mr-2">{e.status}</span>
-                      {e.path}
+                    <div key={i} className="border border-white/10 rounded px-2 py-1 text-xs hover:bg-white/10">
+                      <div className="flex items-center justify-between gap-2">
+                        <button className="text-left flex-1 hover:underline" onClick={() => onOpenPath && onOpenPath(e.path)}>
+                          <span className="opacity-70 mr-2">{e.status}</span>
+                          {e.path}
+                        </button>
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => (window as any).rainvibe?.gitAdd?.(e.path)} className="px-1 py-0.5 border border-white/15 rounded hover:bg-white/10">Stage</button>
+                          <button onClick={() => (window as any).rainvibe?.gitRestore?.(e.path)} className="px-1 py-0.5 border border-white/15 rounded hover:bg-white/10">Restore</button>
+                        </div>
+                      </div>
                     </div>
                   ));
                 } catch {

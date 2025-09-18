@@ -237,6 +237,13 @@ const App: React.FC = () => {
         window.dispatchEvent(new CustomEvent('rainvibe:assistantTab', { detail: 'Changes' }));
       } catch {}
     }});
+    registry.register({ id: 'git-add-all', title: 'Git: Stage All', run: () => { try { (window as any).rainvibe?.gitAdd?.(); } catch {} } });
+    registry.register({ id: 'git-add-current', title: 'Git: Stage Current File', run: () => { if (active?.path) { try { (window as any).rainvibe?.gitAdd?.(active.path); } catch {} } } });
+    registry.register({ id: 'git-commit', title: 'Git: Commit…', run: () => { const m = prompt('Commit message:'); if (!m) return; try { (window as any).rainvibe?.gitCommit?.(m); } catch {} } });
+    registry.register({ id: 'git-branch-create', title: 'Git: Create Branch…', run: () => { const b = prompt('New branch name:'); if (!b) return; try { (window as any).rainvibe?.gitCheckout?.(b, true); setBranch((window as any).rainvibe?.gitBranch?.() || null); } catch {} } });
+    registry.register({ id: 'git-branch-switch', title: 'Git: Switch Branch…', run: () => { const b = prompt('Switch to branch:'); if (!b) return; try { (window as any).rainvibe?.gitCheckout?.(b, false); setBranch((window as any).rainvibe?.gitBranch?.() || null); } catch {} } });
+    registry.register({ id: 'git-stash', title: 'Git: Stash…', run: () => { const m = prompt('Stash message (optional):') || undefined; try { (window as any).rainvibe?.gitStash?.(m); } catch {} } });
+    registry.register({ id: 'git-restore-current', title: 'Git: Restore Current File', run: () => { if (active?.path) { try { (window as any).rainvibe?.gitRestore?.(active.path); update(active.id, (window as any).rainvibe?.readTextFile?.(active.path) || ''); } catch {} } } });
     registry.register({ id: 'new-buffer', title: 'New Buffer', run: () => newBuffer() });
     registry.register({ id: 'close-buffer', title: 'Close Current Tab', run: () => { if (activeId) close(activeId); } });
     registry.register({ id: 'close-others', title: 'Close Other Tabs', run: () => { if (activeId) closeOthers(activeId); } });

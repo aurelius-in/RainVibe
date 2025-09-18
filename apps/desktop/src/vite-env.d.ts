@@ -10,8 +10,14 @@ declare global {
       listDir?: (dir?: string) => { path: string; name: string; isDir: boolean }[];
       searchText?: (term: string, dir?: string) => { path: string; line: number; preview: string }[];
       gitStatus?: () => { status: string; path: string }[];
+      gitAdd?: (relPath?: string) => boolean;
+      gitCommit?: (message: string) => boolean;
+      gitCheckout?: (branch: string, create?: boolean) => boolean;
+      gitStash?: (message?: string) => boolean;
+      gitRestore?: (relPath: string) => boolean;
       gitBranch?: () => string | null;
       appendAudit?: (line: string) => boolean;
+      clearAudit?: () => boolean;
       revealInOS?: (relPath: string) => boolean;
       openPath?: (relPath: string) => boolean;
       writeBytesBase64?: (relPath: string, base64: string) => boolean;

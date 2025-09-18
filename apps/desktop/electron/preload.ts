@@ -140,6 +140,48 @@ contextBridge.exposeInMainWorld('rainvibe', {
     }
   }
   ,
+  gitAdd(relPath?: string): boolean {
+    try {
+      const root = repoRoot();
+      execSync(relPath ? `git add -- "${relPath}"` : 'git add -A', { cwd: root, stdio: 'ignore' });
+      return true;
+    } catch { return false; }
+  }
+  ,
+  gitCommit(message: string): boolean {
+    try {
+      const root = repoRoot();
+      execSync(`git commit -m ${JSON.stringify(message)}`, { cwd: root, stdio: 'ignore' });
+      return true;
+    } catch { return false; }
+  }
+  ,
+  gitCheckout(branch: string, create?: boolean): boolean {
+    try {
+      const root = repoRoot();
+      const cmd = create ? `git checkout -b ${branch}` : `git checkout ${branch}`;
+      execSync(cmd, { cwd: root, stdio: 'ignore' });
+      return true;
+    } catch { return false; }
+  }
+  ,
+  gitStash(message?: string): boolean {
+    try {
+      const root = repoRoot();
+      const cmd = message ? `git stash push -m ${JSON.stringify(message)}` : 'git stash push';
+      execSync(cmd, { cwd: root, stdio: 'ignore' });
+      return true;
+    } catch { return false; }
+  }
+  ,
+  gitRestore(relPath: string): boolean {
+    try {
+      const root = repoRoot();
+      execSync(`git restore -- "${relPath}"`, { cwd: root, stdio: 'ignore' });
+      return true;
+    } catch { return false; }
+  }
+  ,
   gitBranch(): string | null {
     try {
       const root = repoRoot();
@@ -157,6 +199,14 @@ contextBridge.exposeInMainWorld('rainvibe', {
     } catch {
       return false;
     }
+  }
+  ,
+  clearAudit(): boolean {
+    try {
+      const p = path.join(repoRoot(), '.rainvibe', 'trails.jsonl');
+      if (fs.existsSync(p)) fs.rmSync(p, { force: true });
+      return true;
+    } catch { return false; }
   }
   ,
   revealInOS(relPath: string): boolean {
