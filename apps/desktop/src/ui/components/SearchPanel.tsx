@@ -25,7 +25,7 @@ const SearchPanel: React.FC = () => {
   return (
     <div className="h-full flex flex-col text-xs">
       <div className="flex gap-2 mb-2">
-        <input id="search-input" value={q} onChange={(e) => setQ(e.target.value)} className="flex-1 px-2 py-1 bg-black text-white border border-white/15 rounded" placeholder="Search files" />
+        <input id="search-input" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { onSearch(); if (results[0]) { (window as any).dispatchEvent(new CustomEvent('open-path', { detail: results[0].path })); } } }} className="flex-1 px-2 py-1 bg-black text-white border border-white/15 rounded" placeholder="Search files" />
         <button onClick={onSearch} className="px-2 py-1 border border-white/15 rounded hover:bg-white/10">Search</button>
       </div>
       <div className="space-y-1 overflow-auto">

@@ -81,6 +81,15 @@ export function useBuffers() {
     setActiveId(id);
   };
 
+  const renameBuffer = (oldId: string, newPath: string) => {
+    setBuffers(prev => prev.map(b => {
+      if (b.id !== oldId) return b;
+      const nextLang = guessLang(newPath);
+      return { ...b, id: newPath, path: newPath, language: nextLang };
+    }));
+    if (activeId === oldId) setActiveId(newPath);
+  };
+
   const closeOthers = (id: string) => {
     setBuffers(prev => prev.filter(b => b.id === id));
     setActiveId(id);
@@ -93,7 +102,7 @@ export function useBuffers() {
 
   const isDirty = (b: Buffer) => b.content !== (b.savedContent ?? '');
 
-  return { buffers, activeId, setActiveId, update, open, save, close, newBuffer, closeOthers, closeAll, isDirty };
+  return { buffers, activeId, setActiveId, update, open, save, close, newBuffer, closeOthers, closeAll, isDirty, renameBuffer };
 }
 
 function guessLang(p: string): string {

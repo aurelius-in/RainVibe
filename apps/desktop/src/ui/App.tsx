@@ -37,18 +37,20 @@ const TopBar: React.FC<{ modes: string[]; version?: string; onChange: (m: string
   );
 };
 
-const StatusBar: React.FC<{ modes: string[]; policyOn: boolean; policyCount: number; auditCount: number; changesCount: number; dirtyCount?: number; caret?: { line: number; column: number }; language?: string; model: string; provider: string; branch?: string | null; offline: boolean; tokensPct: number; tokenMeter?: boolean; onClickPolicy?: () => void; onClickAudit?: () => void; onClickModel?: () => void; onClickChanges?: () => void; onClickTokens?: () => void }>= ({ modes, policyOn, policyCount, auditCount, changesCount, dirtyCount, caret, language, model, provider, branch, offline, tokensPct, tokenMeter, onClickPolicy, onClickAudit, onClickModel, onClickChanges, onClickTokens }) => {
+const StatusBar: React.FC<{ modes: string[]; policyOn: boolean; policyCount: number; auditCount: number; changesCount: number; dirtyCount?: number; caret?: { line: number; column: number }; language?: string; model: string; provider: string; branch?: string | null; offline: boolean; tokensPct: number; tokenMeter?: boolean; onClickPolicy?: () => void; onClickAudit?: () => void; onClickModel?: () => void; onClickChanges?: () => void; onClickTokens?: () => void; onClickBranch?: () => void }>= ({ modes, policyOn, policyCount, auditCount, changesCount, dirtyCount, caret, language, model, provider, branch, offline, tokensPct, tokenMeter, onClickPolicy, onClickAudit, onClickModel, onClickChanges, onClickTokens, onClickBranch }) => {
   return (
     <div className="h-6 text-xs px-3 flex items-center gap-4 border-t border-white/10 bg-black text-white/80">
       <button onClick={onClickModel} className="underline-offset-2 hover:underline">model: {model}</button>
       <span>provider: {provider}{offline ? ' (offline)' : ''}</span>
-      {branch && <span>branch: {branch}</span>}
+      {branch && <button onClick={onClickBranch} className="underline-offset-2 hover:underline">branch: {branch}</button>}
       <span>mode: {modes.join(' + ') || '—'}</span>
       <button onClick={onClickPolicy} className="underline-offset-2 hover:underline">policy: {policyOn ? `on (${policyCount})` : 'off'}</button>
       <button onClick={onClickAudit} className="underline-offset-2 hover:underline">audit: {auditCount}</button>
       <button onClick={onClickChanges} className="underline-offset-2 hover:underline">changes: {changesCount}</button>
       {typeof dirtyCount === 'number' && <span>dirty: {dirtyCount}</span>}
-      {caret && <span>ln {caret.line}, col {caret.column}{language ? ` — ${language}` : ''}</span>}
+      {caret && <span>{language ? `${language} — ` : ''}{branch ? `${branch} — ` : ''}{caret.line}:{caret.column}</span>}
+      <span>UTF-8 LF</span>
+      <span>{`ln:${counts?.lines ?? 0} wd:${counts?.words ?? 0}`}</span>
       {tokenMeter !== false && (
         <button onClick={onClickTokens} className={`underline-offset-2 hover:underline ${tokensPct > 80 ? 'text-red-400' : tokensPct > 60 ? 'text-yellow-300' : ''}`}>
           tokens: {Math.min(100, Math.max(0, Math.round(tokensPct)))}%
@@ -59,7 +61,7 @@ const StatusBar: React.FC<{ modes: string[]; policyOn: boolean; policyCount: num
 };
 
 const App: React.FC = () => {
-  const { buffers, activeId, setActiveId, update, save, newBuffer, open, closeOthers, closeAll, close } = useBuffers();
+  const { buffers, activeId, setActiveId, update, save, newBuffer, open, closeOthers, closeAll, close, renameBuffer } = useBuffers();
   const active = buffers.find(b => b.id === activeId) ?? buffers[0];
   const { active: activeModes, update: setModes } = useModes();
   const { status: policy, toggle: togglePolicy } = usePolicy();
@@ -147,6 +149,12 @@ const App: React.FC = () => {
     const len = (active?.content || '').length;
     return Math.min(100, (len / 4000) * 100);
   }, [active?.content]);
+  const counts = React.useMemo(() => {
+    const text = active?.content || '';
+    const lines = text ? text.split('\n').length : 0;
+    const words = text ? (text.trim().split(/\s+/).filter(Boolean).length) : 0;
+    return { lines, words };
+  }, [active?.content]);
 
   React.useEffect(() => {
     try {
@@ -154,6 +162,14 @@ const App: React.FC = () => {
       setChangesCount(entries.length);
       setBranch((window as any).rainvibe?.gitBranch?.() || null);
     } catch { setChangesCount(0); }
+    const id = setInterval(() => {
+      try {
+        const entries = (window as any).rainvibe?.gitStatus?.() || [];
+        setChangesCount(entries.length);
+        setBranch((window as any).rainvibe?.gitBranch?.() || null);
+      } catch {}
+    }, 10000);
+    return () => clearInterval(id);
   }, []);
     registry.register({ id: 'toggle-assistant', title: 'Toggle Assistant Panel', run: () => { setAssistantOpen(v => !v); try { (window as any).rainvibe?.appendAudit?.(JSON.stringify({ kind:'toggle_assistant', ts: Date.now() })+'\n'); } catch {} } });
     registry.register({ id: 'mode-basic', title: 'Switch Mode: Basic', run: () => { setModes(['Basic'] as any); try { (window as any).rainvibe?.appendAudit?.(JSON.stringify({ kind:'switch_mode', mode:'Basic', ts: Date.now() })+'\n'); } catch {} } });
@@ -168,8 +184,10 @@ const App: React.FC = () => {
       alert('Policy simulation: all checks passed (stub).');
     }});
     registry.register({ id: 'open-patch-preview', title: 'Open Patch Preview', run: () => {
-      setDiffOriginal(active?.content || '');
-      setDiffModified((active?.content || '') + '\n// TODO: refine');
+      const orig = active?.savedContent ?? active?.content ?? '';
+      const mod = active?.content ?? '';
+      setDiffOriginal(orig);
+      setDiffModified(mod);
       setShowDiff(true);
     }});
     registry.register({ id: 'left-rail-workspace', title: 'Show Workspace', run: () => setLeftRail('workspace') });
@@ -209,7 +227,16 @@ const App: React.FC = () => {
     registry.register({ id: 'close-buffer', title: 'Close Current Tab', run: () => { if (activeId) close(activeId); } });
     registry.register({ id: 'close-others', title: 'Close Other Tabs', run: () => { if (activeId) closeOthers(activeId); } });
     registry.register({ id: 'close-all', title: 'Close All Tabs', run: () => { closeAll(); } });
-    registry.register({ id: 'save-buffer', title: 'Save Buffer', run: () => { if (prefs.formatOnSave) { try { (document.activeElement as any)?.blur?.(); } catch {} /* formatting handled by editor action */ } save(activeId); try { (window as any).rainvibe?.appendAudit?.(JSON.stringify({ kind:'save', path: active?.path, ts: Date.now() })+'\n'); } catch {} } });
+    registry.register({ id: 'save-buffer', title: 'Save Buffer', run: async () => {
+      try {
+        if (prefs.formatOnSave) {
+          const fmt = registry.get('format-document');
+          await fmt?.run();
+        }
+      } catch {}
+      save(activeId);
+      try { (window as any).rainvibe?.appendAudit?.(JSON.stringify({ kind:'save', path: active?.path, ts: Date.now() })+'\n'); } catch {}
+    } });
     registry.register({ id: 'save-all', title: 'Save All Buffers', run: () => { try { buffers.forEach(b => { (window as any).rainvibe?.writeTextFile?.(b.path, b.content); }); } catch {} } });
     registry.register({ id: 'open-shortcuts', title: 'Open Shortcuts', run: () => setShortcutsOpen(true) });
     registry.register({ id: 'toggle-minimap', title: 'Toggle Minimap', run: () => {
@@ -257,9 +284,7 @@ const App: React.FC = () => {
       try {
         const ok = (window as any).rainvibe?.renamePath?.(active.path, to);
         if (ok) {
-          // Reload buffer with new path
-          const txt = (window as any).rainvibe?.readTextFile?.(to) ?? active.content;
-          update(active.id, String(txt));
+          renameBuffer(active.id, to);
           window.dispatchEvent(new CustomEvent('rainvibe:workspace:refresh'));
         }
       } catch {}
@@ -278,6 +303,9 @@ const App: React.FC = () => {
     registry.register({ id: 'toggle-block-comment', title: 'Toggle Block Comment', run: () => trigger('editor.action.blockComment') });
     registry.register({ id: 'select-occurrences', title: 'Select All Occurrences', run: () => trigger('editor.action.selectHighlights') });
     registry.register({ id: 'format-selection', title: 'Format Selection', run: () => trigger('editor.action.formatSelection') });
+                registry.register({ id: 'indent-line', title: 'Indent Line', run: () => trigger('editor.action.indentLines') });
+                registry.register({ id: 'outdent-line', title: 'Outdent Line', run: () => trigger('editor.action.outdentLines') });
+                registry.register({ id: 'go-to-matching-bracket', title: 'Go to Matching Bracket', run: () => trigger('editor.action.jumpToBracket') });
     registry.register({ id: 'copy-selection-md', title: 'Copy Selection as Markdown', run: async () => {
       try { const sel = window.getSelection?.()?.toString?.() || ''; if (sel) await navigator.clipboard.writeText('```\n' + sel + '\n```'); } catch {}
     }});
@@ -286,6 +314,19 @@ const App: React.FC = () => {
       const path = prompt('Enter relative path to open:');
       if (path) open(path);
     }});
+    registry.register({ id: 'import-preferences', title: 'Import Preferences…', run: async () => {
+      try {
+        const raw = prompt('Paste preferences JSON');
+        if (!raw) return;
+        const obj = JSON.parse(raw);
+        save({ ...prefs, ...obj });
+      } catch {}
+    }});
+    registry.register({ id: 'export-preferences', title: 'Export Preferences to Clipboard', run: async () => {
+      try { await navigator.clipboard.writeText(JSON.stringify(prefs, null, 2)); } catch {}
+    }});
+    registry.register({ id: 'copy-relative-path', title: 'Copy Relative Path', run: async () => { try { await navigator.clipboard.writeText(active?.path || ''); } catch {} }});
+    registry.register({ id: 'copy-filename', title: 'Copy Filename', run: async () => { try { const name = active?.path?.split('/')?.pop() || ''; await navigator.clipboard.writeText(name); } catch {} }});
     registry.register({ id: 'generate-feature-report', title: 'Generate Feature Coverage Report', run: () => {
       fetch('/scripts/feature-report.mjs').catch(() => {});
       alert('Run `pnpm report` to generate FEATURE_COVERAGE.md');
@@ -309,6 +350,20 @@ const App: React.FC = () => {
     }});
     registry.register({ id: 'open-external', title: 'Open Current File Externally', run: () => { if (active?.path) { try { (window as any).rainvibe?.openPath?.(active.path); } catch {} } }});
     registry.register({ id: 'refresh-branch', title: 'Refresh Git Branch', run: () => { try { setBranch((window as any).rainvibe?.gitBranch?.() || null); } catch {} } });
+    registry.register({ id: 'open-containing-folder', title: 'Open Containing Folder', run: () => {
+      if (!active?.path) return;
+      try { const parts = (active.path || '').split('/'); parts.pop(); const dir = parts.join('/') || '.'; (window as any).rainvibe?.revealInOS?.(dir); } catch {}
+    }});
+    registry.register({ id: 'quick-outline', title: 'Quick Outline', run: () => {
+      try {
+        const src = active?.content || '';
+        const lines = src.split('\n');
+        const items: string[] = [];
+        const rx = /(class\s+\w+|function\s+\w+|const\s+\w+\s*=\s*\(|export\s+(?:default\s+)?class|export\s+function\s+\w+)/;
+        lines.forEach((ln, i) => { if (rx.test(ln)) items.push(`${i+1}: ${ln.trim()}`); });
+        alert(items.join('\n') || 'No symbols found');
+      } catch { alert('No symbols found'); }
+    }});
     registry.register({ id: 'open-chat-tab', title: 'Open Chat Tab', run: () => {
       window.dispatchEvent(new CustomEvent('rainvibe:assistantTab', { detail: 'Chat' }));
     }});
@@ -506,6 +561,7 @@ const App: React.FC = () => {
         onClickModel={() => setPrefsOpen(true)}
         onClickChanges={() => window.dispatchEvent(new CustomEvent('rainvibe:assistantTab', { detail: 'Changes' }))}
         onClickTokens={() => setPrefsOpen(true)}
+        onClickBranch={() => { try { setBranch((window as any).rainvibe?.gitBranch?.() || null); } catch {} }}
       />
       <ActionBoard
         open={boardOpen}

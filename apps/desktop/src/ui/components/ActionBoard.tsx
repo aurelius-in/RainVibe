@@ -20,7 +20,24 @@ const ActionBoard: React.FC<Props> = ({ open, commands, onClose }) => {
     if (open) setSel(0);
   }, [open]);
   if (!open) return null;
-  const filtered = commands.filter(c => c.title.toLowerCase().includes(q.toLowerCase()));
+  const filtered = React.useMemo(() => {
+    if (q.startsWith('>')) {
+      // quick open file: dispatch filter and switch to workspace
+      const target = q.slice(1).trim();
+      if (target) {
+        window.dispatchEvent(new CustomEvent('rainvibe:filter', { detail: target }));
+        window.dispatchEvent(new CustomEvent('rainvibe:left', { detail: 'workspace' }));
+      }
+      return commands;
+    }
+    if (q.startsWith('!')) {
+      const id = q.slice(1).trim();
+      const exact = commands.find(c => c.id === id);
+      if (exact) return [exact];
+    }
+    const lower = q.toLowerCase();
+    return commands.filter(c => c.title.toLowerCase().includes(lower) || c.id.toLowerCase().includes(lower));
+  }, [q, commands]);
   return (
     <div className="fixed inset-0 bg-black/60 flex items-start justify-center pt-24" onClick={onClose}>
       <div className="w-[640px] bg-black border border-white/15 rounded shadow-xl" onClick={(e) => e.stopPropagation()}>
