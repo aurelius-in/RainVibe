@@ -512,6 +512,41 @@ const App: React.FC = () => {
         <main className="p-0">
           <div className="h-full w-full bg-black">
             <EditorTabs />
+            <div className="h-7 flex items-center gap-1 px-2 border-b border-white/10 text-xs">
+              {(() => {
+                const p = active?.path || '';
+                const parts = p.split('/').filter(Boolean);
+                const dirs = parts.slice(0, Math.max(0, parts.length - 1));
+                const acc: string[] = [];
+                const onGo = (to: string) => {
+                  try {
+                    window.dispatchEvent(new CustomEvent('rainvibe:left', { detail: 'workspace' }));
+                    window.dispatchEvent(new CustomEvent('rainvibe:cwd', { detail: to }));
+                  } catch {}
+                };
+                return (
+                  <div className="flex items-center gap-1">
+                    <button onClick={() => onGo('')} className="px-1 py-0.5 rounded hover:bg-white/10">/</button>
+                    {dirs.map((seg, idx) => {
+                      acc.push(seg);
+                      const to = acc.join('/');
+                      return (
+                        <span key={idx} className="flex items-center gap-1">
+                          <span className="opacity-40">/</span>
+                          <button onClick={() => onGo(to)} className="px-1 py-0.5 rounded hover:bg-white/10">{seg}</button>
+                        </span>
+                      );
+                    })}
+                    {parts.length > 0 && (
+                      <span className="flex items-center gap-1 opacity-70">
+                        <span className="opacity-40">/</span>
+                        <span>{parts[parts.length - 1]}</span>
+                      </span>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
             <EditorHost
               value={active.content}
               language={active.language}
