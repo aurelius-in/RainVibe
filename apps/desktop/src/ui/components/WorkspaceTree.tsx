@@ -37,8 +37,12 @@ const WorkspaceTree: React.FC = () => {
         {cwd && <span className="text-xs opacity-70">{cwd}</span>}
       </div>
       <input placeholder="Search workspace" value={filter} onChange={(e) => { setFilter(e.target.value); try { localStorage.setItem('rainvibe.workspace.filter', e.target.value); } catch {} }} className="mb-2 px-2 py-1 bg-black text-white border border-white/15 rounded text-xs" />
-      <div className="text-xs space-y-1 overflow-auto" onKeyDown={(e) => {
-        if (e.key === 'Enter' && menu?.entry && !menu.entry.isDir) { open(menu.entry.path); }
+      <div className="text-xs space-y-1 overflow-auto" tabIndex={0} onKeyDown={(e) => {
+        if (e.key === 'F2' && menu?.entry) {
+          const to = prompt('Rename to (relative path):', menu.entry.path);
+          if (to && to !== menu.entry.path) { try { (window as any).rainvibe?.renamePath?.(menu.entry.path, to); refresh(); } catch {} }
+        }
+        if (e.key === 'Enter' && menu?.entry) { if (menu.entry.isDir) { setCwd(menu.entry.path); } else { open(menu.entry.path); } }
         if (e.key === 'Delete' && menu?.entry) { const ok = confirm(`Delete ${menu.entry.path}?`); if (ok) { try { (window as any).rainvibe?.deletePath?.(menu.entry.path); refresh(); } catch {} } }
       }}>
         {filtered.map(e => (
