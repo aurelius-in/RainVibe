@@ -265,6 +265,9 @@ const App: React.FC = () => {
                   revealPosition(line, col);
                 }});
                 registry.register({ id: 'format-document', title: 'Format Document', run: () => trigger('editor.action.formatDocument') });
+                registry.register({ id: 'find-in-file', title: 'Find in File…', run: () => trigger('actions.find') });
+                registry.register({ id: 'find-next', title: 'Find Next', run: () => trigger('editor.action.nextMatchFindAction') });
+                registry.register({ id: 'find-previous', title: 'Find Previous', run: () => trigger('editor.action.previousMatchFindAction') });
               }}
             />
           </div>
