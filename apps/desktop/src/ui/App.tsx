@@ -157,6 +157,21 @@ const App: React.FC = () => {
     registry.register({ id: 'open-diagnostics-tab', title: 'Open Diagnostics Tab', run: () => {
       window.dispatchEvent(new CustomEvent('rainvibe:assistantTab', { detail: 'Diagnostics' }));
     }});
+    registry.register({ id: 'open-trails-tab', title: 'Open Trails Tab', run: () => {
+      window.dispatchEvent(new CustomEvent('rainvibe:assistantTab', { detail: 'Trails' }));
+    }});
+    registry.register({ id: 'open-guardrails-tab', title: 'Open Guardrails Tab', run: () => {
+      window.dispatchEvent(new CustomEvent('rainvibe:assistantTab', { detail: 'Guardrails' }));
+    }});
+    registry.register({ id: 'open-run-tab', title: 'Open Run Console Tab', run: () => {
+      window.dispatchEvent(new CustomEvent('rainvibe:assistantTab', { detail: 'Run' }));
+    }});
+    registry.register({ id: 'open-chat-tab', title: 'Open Chat Tab', run: () => {
+      window.dispatchEvent(new CustomEvent('rainvibe:assistantTab', { detail: 'Chat' }));
+    }});
+    registry.register({ id: 'open-modes-tab', title: 'Open Modes Tab', run: () => {
+      window.dispatchEvent(new CustomEvent('rainvibe:assistantTab', { detail: 'Modes' }));
+    }});
     registry.register({ id: 'open-readme', title: 'Open README.md', run: () => {
       try {
         const ok = open('README.md');
