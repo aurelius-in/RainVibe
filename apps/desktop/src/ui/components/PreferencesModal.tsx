@@ -24,6 +24,12 @@ const PreferencesModal: React.FC<Props> = ({ open, onClose }) => {
           <label className="block">Model
             <input className="mt-1 bg-black border border-white/15 rounded px-2 py-1 w-full" value={local.model} onChange={(e) => setLocal({ ...local, model: e.target.value })} />
           </label>
+          <label className="block">API Key
+            <input type="password" className="mt-1 bg-black border border-white/15 rounded px-2 py-1 w-full" value={(local as any).apiKey || ''} onChange={(e) => setLocal({ ...local, apiKey: e.target.value } as any)} />
+          </label>
+          <label className="block">Base URL (optional)
+            <input className="mt-1 bg-black border border-white/15 rounded px-2 py-1 w-full" value={(local as any).baseUrl || ''} onChange={(e) => setLocal({ ...local, baseUrl: e.target.value } as any)} />
+          </label>
           <label className="flex items-center gap-2">
             <input type="checkbox" checked={local.offlineOnly} onChange={(e) => setLocal({ ...local, offlineOnly: e.target.checked })} />
             <span>Offline-only mode</span>
