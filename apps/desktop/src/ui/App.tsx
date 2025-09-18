@@ -247,6 +247,16 @@ const App: React.FC = () => {
       if (meta && e.key.toLowerCase() === 'i') { setAssistantOpen(v => !v); e.preventDefault(); }
       if (meta && e.key.toLowerCase() === 'k') { setBoardOpen(true); e.preventDefault(); }
       if (meta && e.key.toLowerCase() === 's') { save(activeId); e.preventDefault(); }
+      if (meta && e.key.toLowerCase() === 'w') { // Close current
+        if (e.shiftKey) { // Close others
+          if (activeId) closeOthers(activeId);
+        } else if (e.altKey) { // Close all
+          closeAll();
+        } else {
+          if (activeId) close(activeId);
+        }
+        e.preventDefault();
+      }
       if (meta && e.shiftKey && e.key === 'Enter') {
         setDiffOriginal(active?.content || '');
         setDiffModified((active?.content || '') + '\n// TODO: refine');
