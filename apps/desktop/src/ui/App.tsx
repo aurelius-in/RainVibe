@@ -37,7 +37,7 @@ const TopBar: React.FC<{ modes: string[]; version?: string; onChange: (m: string
   );
 };
 
-const StatusBar: React.FC<{ modes: string[]; policyOn: boolean; policyCount: number; auditCount: number; changesCount: number; dirtyCount?: number; caret?: { line: number; column: number }; language?: string; model: string; provider: string; branch?: string | null; offline: boolean; tokensPct: number; tokenMeter?: boolean; onClickPolicy?: () => void; onClickAudit?: () => void; onClickModel?: () => void; onClickChanges?: () => void; onClickTokens?: () => void; onClickBranch?: () => void }>= ({ modes, policyOn, policyCount, auditCount, changesCount, dirtyCount, caret, language, model, provider, branch, offline, tokensPct, tokenMeter, onClickPolicy, onClickAudit, onClickModel, onClickChanges, onClickTokens, onClickBranch }) => {
+const StatusBar: React.FC<{ modes: string[]; policyOn: boolean; policyCount: number; auditCount: number; changesCount: number; dirtyCount?: number; caret?: { line: number; column: number }; language?: string; model: string; provider: string; branch?: string | null; offline: boolean; tokensPct: number; tokenMeter?: boolean; onClickPolicy?: () => void; onClickAudit?: () => void; onClickModel?: () => void; onClickChanges?: () => void; onClickTokens?: () => void; onClickBranch?: () => void; onClickEncoding?: () => void }>= ({ modes, policyOn, policyCount, auditCount, changesCount, dirtyCount, caret, language, model, provider, branch, offline, tokensPct, tokenMeter, onClickPolicy, onClickAudit, onClickModel, onClickChanges, onClickTokens, onClickBranch, onClickEncoding }) => {
   return (
     <div className="h-6 text-xs px-3 flex items-center gap-4 border-t border-white/10 bg-black text-white/80">
       <button onClick={onClickModel} className="underline-offset-2 hover:underline">model: {model}</button>
@@ -49,7 +49,7 @@ const StatusBar: React.FC<{ modes: string[]; policyOn: boolean; policyCount: num
       <button onClick={onClickChanges} className="underline-offset-2 hover:underline">changes: {changesCount}</button>
       {typeof dirtyCount === 'number' && <span>dirty: {dirtyCount}</span>}
       {caret && <span>{language ? `${language} — ` : ''}{branch ? `${branch} — ` : ''}{caret.line}:{caret.column}</span>}
-      <span>UTF-8 LF</span>
+      <button onClick={onClickEncoding} className="underline-offset-2 hover:underline">UTF-8 LF</button>
       <span>{`ln:${counts?.lines ?? 0} wd:${counts?.words ?? 0}`}</span>
       {tokenMeter !== false && (
         <button onClick={onClickTokens} className={`underline-offset-2 hover:underline ${tokensPct > 80 ? 'text-red-400' : tokensPct > 60 ? 'text-yellow-300' : ''}`}>
@@ -484,6 +484,11 @@ const App: React.FC = () => {
                 registry.register({ id: 'find-in-file', title: 'Find in File…', run: () => trigger('actions.find') });
                 registry.register({ id: 'find-next', title: 'Find Next', run: () => trigger('editor.action.nextMatchFindAction') });
                 registry.register({ id: 'find-previous', title: 'Find Previous', run: () => trigger('editor.action.previousMatchFindAction') });
+                registry.register({ id: 'peek-definition', title: 'Peek Definition', run: () => trigger('editor.action.referenceSearch.trigger') });
+                registry.register({ id: 'go-to-definition', title: 'Go to Definition', run: () => trigger('editor.action.revealDefinition') });
+                registry.register({ id: 'rename-symbol', title: 'Rename Symbol', run: () => trigger('editor.action.rename') });
+                registry.register({ id: 'add-cursor-below', title: 'Add Cursor Below', run: () => trigger('editor.action.insertCursorBelow') });
+                registry.register({ id: 'add-cursor-above', title: 'Add Cursor Above', run: () => trigger('editor.action.insertCursorAbove') });
                 registry.register({ id: 'copy-line', title: 'Copy Line', run: () => trigger('editor.action.clipboardCopyAction') });
                 registry.register({ id: 'duplicate-line', title: 'Duplicate Line', run: () => trigger('editor.action.copyLinesDownAction') });
                 registry.register({ id: 'delete-line', title: 'Delete Line', run: () => trigger('editor.action.deleteLines') });
@@ -562,6 +567,7 @@ const App: React.FC = () => {
         onClickChanges={() => window.dispatchEvent(new CustomEvent('rainvibe:assistantTab', { detail: 'Changes' }))}
         onClickTokens={() => setPrefsOpen(true)}
         onClickBranch={() => { try { setBranch((window as any).rainvibe?.gitBranch?.() || null); } catch {} }}
+        onClickEncoding={() => setPrefsOpen(true)}
       />
       <ActionBoard
         open={boardOpen}

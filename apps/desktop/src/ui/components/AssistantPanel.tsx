@@ -144,7 +144,17 @@ const AssistantPanel: React.FC<Props> = ({ open, audit, diagnostics, onOpenPath,
           </div>
         )}
         {tab === 'Navigation' && (
-          <div className="space-y-1">
+          <div className="space-y-2">
+            <div>
+              <div className="opacity-70 text-xs mb-1">Quick Outline</div>
+              <button onClick={() => {
+                try {
+                  const ev = new CustomEvent('rainvibe:assistantTab', { detail: 'Navigation' });
+                  window.dispatchEvent(ev);
+                  alert('Use the Quick Outline command for a full list');
+                } catch {}
+              }} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10 text-xs">Refresh</button>
+            </div>
             <div className="opacity-70 text-xs mb-1">Imports in active file</div>
             {(navImports ?? []).map((m, i) => (
               <div key={i} className="border border-white/10 rounded px-2 py-1 text-xs">{m}</div>
