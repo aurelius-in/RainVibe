@@ -10,10 +10,12 @@ interface Props {
   minimap?: boolean;
   fontSize?: number;
   wordWrap?: boolean;
+  lineNumbers?: boolean;
+  renderWhitespace?: boolean;
   onReady?: (api: { revealPosition: (line: number, column: number) => void; trigger: (actionId: string) => void }) => void;
 }
 
-const EditorHost: React.FC<Props> = ({ value, language, onChange, inlineAutocompleteEnabled, diagnostics, minimap, fontSize, wordWrap, onReady }) => {
+const EditorHost: React.FC<Props> = ({ value, language, onChange, inlineAutocompleteEnabled, diagnostics, minimap, fontSize, wordWrap, lineNumbers, renderWhitespace, onReady }) => {
   const editorRef = React.useRef<any>(null);
   const monacoRef = React.useRef<any>(null);
 
@@ -102,7 +104,8 @@ const EditorHost: React.FC<Props> = ({ value, language, onChange, inlineAutocomp
         fontFamily: 'Consolas, "JetBrains Mono", "Source Code Pro", monospace',
         fontSize: fontSize ?? 14,
         wordWrap: wordWrap ? 'on' : 'off',
-        renderWhitespace: 'none',
+        renderWhitespace: renderWhitespace ? 'all' : 'none',
+        lineNumbers: lineNumbers === false ? 'off' : 'on',
         automaticLayout: true,
       }}
     />

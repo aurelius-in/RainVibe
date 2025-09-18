@@ -310,6 +310,8 @@ const App: React.FC = () => {
               minimap={prefs.minimap}
               fontSize={prefs.fontSize}
               wordWrap={!!prefs.wordWrap}
+              lineNumbers={!!prefs.lineNumbers}
+              renderWhitespace={!!prefs.renderWhitespace}
               onReady={({ revealPosition, trigger }) => {
                 registry.register({ id: 'go-to-line', title: 'Go to Line…', run: () => {
                   const v = prompt('Line:Column');

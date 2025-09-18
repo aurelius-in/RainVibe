@@ -9,11 +9,14 @@ export interface Preferences {
   minimap?: boolean;
   fontSize?: number;
   wordWrap?: boolean;
+  tokenMeter?: boolean;
+  lineNumbers?: boolean;
+  renderWhitespace?: boolean;
 }
 
 const KEY = 'rainvibe.preferences';
 const KEY_FIRST = 'rainvibe.firstRun';
-const DEFAULTS: Preferences = { provider: 'chatgpt', model: 'gpt-4o-mini', offlineOnly: false, ghostText: true, telemetryOptIn: false, minimap: true, fontSize: 14, wordWrap: false };
+const DEFAULTS: Preferences = { provider: 'chatgpt', model: 'gpt-4o-mini', offlineOnly: false, ghostText: true, telemetryOptIn: false, minimap: true, fontSize: 14, wordWrap: false, tokenMeter: true, lineNumbers: true, renderWhitespace: false };
 
 export function usePreferences() {
   const [prefs, setPrefs] = React.useState<Preferences>(() => {
