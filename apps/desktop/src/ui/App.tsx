@@ -37,13 +37,14 @@ const TopBar: React.FC<{ modes: string[]; onChange: (m: string[]) => void; onOpe
   );
 };
 
-const StatusBar: React.FC<{ modes: string[]; policyOn: boolean; policyCount: number; auditCount: number; model: string; tokensPct: number }>= ({ modes, policyOn, policyCount, auditCount, model, tokensPct }) => {
+const StatusBar: React.FC<{ modes: string[]; policyOn: boolean; policyCount: number; auditCount: number; changesCount: number; model: string; tokensPct: number }>= ({ modes, policyOn, policyCount, auditCount, changesCount, model, tokensPct }) => {
   return (
     <div className="h-6 text-xs px-3 flex items-center gap-4 border-t border-white/10 bg-black text-white/80">
       <span>model: {model}</span>
       <span>mode: {modes.join(' + ') || '—'}</span>
       <span>policy: {policyOn ? `on (${policyCount})` : 'off'}</span>
       <span>audit: {auditCount}</span>
+      <span>changes: {changesCount}</span>
       <span>tokens: {Math.min(100, Math.max(0, Math.round(tokensPct)))}%</span>
     </div>
   );
@@ -71,6 +72,7 @@ const App: React.FC = () => {
   const [diffModified, setDiffModified] = React.useState('');
   const [shortcutsOpen, setShortcutsOpen] = React.useState(false);
   const [diagnostics, setDiagnostics] = React.useState<Array<{ message: string; severity: 'error' | 'warning' | 'info'; startLine: number; startColumn: number; endLine: number; endColumn: number }>>([]);
+  const [changesCount, setChangesCount] = React.useState<number>(0);
   React.useEffect(() => {
     try { document.title = `RainVibe — ${active?.path ?? ''}`; } catch {}
   }, [active?.path]);
@@ -97,6 +99,13 @@ const App: React.FC = () => {
     const len = (active?.content || '').length;
     return Math.min(100, (len / 4000) * 100);
   }, [active?.content]);
+
+  React.useEffect(() => {
+    try {
+      const entries = (window as any).rainvibe?.gitStatus?.() || [];
+      setChangesCount(entries.length);
+    } catch { setChangesCount(0); }
+  }, []);
     registry.register({ id: 'toggle-assistant', title: 'Toggle Assistant Panel', run: () => { setAssistantOpen(v => !v); try { (window as any).rainvibe?.appendAudit?.(JSON.stringify({ kind:'toggle_assistant', ts: Date.now() })+'\n'); } catch {} } });
     registry.register({ id: 'mode-basic', title: 'Switch Mode: Basic', run: () => { setModes(['Basic'] as any); try { (window as any).rainvibe?.appendAudit?.(JSON.stringify({ kind:'switch_mode', mode:'Basic', ts: Date.now() })+'\n'); } catch {} } });
     registry.register({ id: 'toggle-policy', title: 'Toggle Policy-Safe', run: () => togglePolicy() });
@@ -130,6 +139,13 @@ const App: React.FC = () => {
     }});
     registry.register({ id: 'copy-path', title: 'Copy File Path', run: async () => {
       try { await navigator.clipboard.writeText(active?.path || ''); } catch {}
+    }});
+    registry.register({ id: 'refresh-changes', title: 'Refresh Changes Count', run: () => {
+      try {
+        const entries = (window as any).rainvibe?.gitStatus?.() || [];
+        setChangesCount(entries.length);
+        window.dispatchEvent(new CustomEvent('rainvibe:assistantTab', { detail: 'Changes' }));
+      } catch {}
     }});
     registry.register({ id: 'new-buffer', title: 'New Buffer', run: () => newBuffer() });
     registry.register({ id: 'close-buffer', title: 'Close Current Tab', run: () => { if (activeId) close(activeId); } });
@@ -311,7 +327,7 @@ const App: React.FC = () => {
           />
         </aside>
       </div>
-      <StatusBar modes={activeModes as any} policyOn={policy.enabled} policyCount={(policy as any)?.ruleFiles?.length ?? 0} auditCount={events.length} model={prefs.model} tokensPct={tokensPct} />
+      <StatusBar modes={activeModes as any} policyOn={policy.enabled} policyCount={(policy as any)?.ruleFiles?.length ?? 0} auditCount={events.length} changesCount={changesCount} model={prefs.model} tokensPct={tokensPct} />
       <ActionBoard
         open={boardOpen}
         onClose={() => setBoardOpen(false)}
