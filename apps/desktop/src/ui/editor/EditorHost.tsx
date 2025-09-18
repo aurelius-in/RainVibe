@@ -8,7 +8,7 @@ interface Props {
   inlineAutocompleteEnabled?: boolean;
   diagnostics?: Array<{ message: string; severity: 'error' | 'warning' | 'info'; startLine: number; startColumn: number; endLine: number; endColumn: number }>
   minimap?: boolean;
-  onReady?: (api: { revealPosition: (line: number, column: number) => void }) => void;
+  onReady?: (api: { revealPosition: (line: number, column: number) => void; trigger: (actionId: string) => void }) => void;
 }
 
 const EditorHost: React.FC<Props> = ({ value, language, onChange, inlineAutocompleteEnabled, diagnostics, minimap, onReady }) => {
@@ -21,6 +21,13 @@ const EditorHost: React.FC<Props> = ({ value, language, onChange, inlineAutocomp
       onReady({
         revealPosition: (line, column) => {
           try { editorRef.current.revealPositionInCenter({ lineNumber: line, column }); editorRef.current.setPosition({ lineNumber: line, column }); editorRef.current.focus(); } catch {}
+        },
+        trigger: async (actionId: string) => {
+          try {
+            const action = editorRef.current.getAction?.(actionId);
+            if (action) { await action.run(); return; }
+            editorRef.current.trigger('keyboard', actionId, null);
+          } catch {}
         }
       });
     }

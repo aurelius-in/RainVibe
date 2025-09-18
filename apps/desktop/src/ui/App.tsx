@@ -212,7 +212,7 @@ const App: React.FC = () => {
               inlineAutocompleteEnabled={!!prefs.ghostText}
               diagnostics={diagnostics}
               minimap={prefs.minimap}
-              onReady={({ revealPosition }) => {
+              onReady={({ revealPosition, trigger }) => {
                 registry.register({ id: 'go-to-line', title: 'Go to Line…', run: () => {
                   const v = prompt('Line:Column');
                   if (!v) return;
@@ -221,6 +221,7 @@ const App: React.FC = () => {
                   const col = parseInt(colStr || '1', 10);
                   revealPosition(line, col);
                 }});
+                registry.register({ id: 'format-document', title: 'Format Document', run: () => trigger('editor.action.formatDocument') });
               }}
             />
           </div>
