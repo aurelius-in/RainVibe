@@ -10,15 +10,16 @@ const tabs: Tab[] = ['Chat', 'Tasks', 'Modes', 'Trails', 'Run', 'Diagnostics', '
 interface Props {
   open: boolean;
   audit?: { events: Array<{ id: string; ts: number; kind: string }>; onExport: (fmt: 'html' | 'jsonl' | 'pdf') => void };
-  diagnostics?: Array<{ message: string; severity: 'error' | 'warning' | 'info' }>;
+  diagnostics?: Array<{ message: string; severity: 'error' | 'warning' | 'info'; startLine?: number; startColumn?: number }>;
   onOpenPath?: (path: string) => void;
   policyEnabled?: boolean;
   onTogglePolicy?: () => void;
   navImports?: string[];
   onClearDiagnostics?: () => void;
+  onOpenDiagnostic?: (line: number, column: number) => void;
 }
 
-const AssistantPanel: React.FC<Props> = ({ open, audit, diagnostics, onOpenPath, policyEnabled, onTogglePolicy, navImports, onClearDiagnostics }) => {
+const AssistantPanel: React.FC<Props> = ({ open, audit, diagnostics, onOpenPath, policyEnabled, onTogglePolicy, navImports, onClearDiagnostics, onOpenDiagnostic }) => {
   const [tab, setTab] = React.useState<Tab>('Chat');
   if (!open) return null;
   return (
@@ -82,12 +83,17 @@ const AssistantPanel: React.FC<Props> = ({ open, audit, diagnostics, onOpenPath,
               <button onClick={onClearDiagnostics} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10">Clear</button>
             </div>
             <div className="space-y-1">
-            {(diagnostics ?? []).map((d, i) => (
-              <div key={i} className="border border-white/10 rounded px-2 py-1">
-                <span className="opacity-70 mr-2">{d.severity}</span>
-                {d.message}
-              </div>
-            ))}
+              {(diagnostics ?? []).map((d, i) => (
+                <button
+                  key={i}
+                  onClick={() => d.startLine && onOpenDiagnostic?.(d.startLine || 1, d.startColumn || 1)}
+                  className="w-full text-left border border-white/10 rounded px-2 py-1 hover:bg-white/10"
+                >
+                  <span className="opacity-70 mr-2">{d.severity}</span>
+                  {d.message}
+                  {d.startLine ? <span className="opacity-50 ml-2">(line {d.startLine})</span> : null}
+                </button>
+              ))}
             {(diagnostics?.length ?? 0) === 0 && <div className="opacity-60">No diagnostics</div>}
             </div>
           </div>

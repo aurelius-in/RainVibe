@@ -212,7 +212,7 @@ const App: React.FC = () => {
               inlineAutocompleteEnabled={!!prefs.ghostText}
               diagnostics={diagnostics}
               minimap={prefs.minimap}
-              onReady={({ revealPosition }) => {
+              onReady={({ revealPosition, trigger }) => {
                 registry.register({ id: 'go-to-line', title: 'Go to Line…', run: () => {
                   const v = prompt('Line:Column');
                   if (!v) return;
@@ -221,6 +221,7 @@ const App: React.FC = () => {
                   const col = parseInt(colStr || '1', 10);
                   revealPosition(line, col);
                 }});
+                registry.register({ id: 'format-document', title: 'Format Document', run: () => trigger('editor.action.formatDocument') });
               }}
             />
           </div>
@@ -228,7 +229,7 @@ const App: React.FC = () => {
         <aside className="border-l border-white/10 p-0">
           <AssistantPanel
             open={assistantOpen}
-            diagnostics={diagnostics.map(d => ({ message: d.message, severity: d.severity }))}
+            diagnostics={diagnostics.map(d => ({ message: d.message, severity: d.severity, startLine: d.startLine, startColumn: d.startColumn }))}
             audit={{
               events: events as any,
               onExport: (fmt) => {
@@ -252,6 +253,13 @@ const App: React.FC = () => {
             onTogglePolicy={() => togglePolicy()}
             navImports={(active?.content.match(/import\s+[^;]+;/g) || []).map(s => s.trim())}
             onClearDiagnostics={() => setDiagnostics([])}
+            onOpenDiagnostic={(line, col) => {
+              // Create a command using last onReady
+              const cmd = registry.getAll().find(c => c.id === 'go-to-line');
+              // fallback: dispatch a prompt
+              const evt = new CustomEvent('rainvibe:goto', { detail: { line, col } } as any);
+              window.dispatchEvent(evt);
+            }}
           />
         </aside>
       </div>
