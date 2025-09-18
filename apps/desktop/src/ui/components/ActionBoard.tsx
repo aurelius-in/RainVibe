@@ -16,9 +16,13 @@ const ActionBoard: React.FC<Props> = ({ open, commands, onClose }) => {
   const [q, setQ] = React.useState('');
   const [sel, setSel] = React.useState(0);
   React.useEffect(() => {
-    if (!open) setQ('');
-    if (open) setSel(0);
+    if (!open) return;
+    try { setQ(localStorage.getItem('rainvibe.actionboard.q') || ''); } catch {}
+    setSel(0);
   }, [open]);
+  React.useEffect(() => {
+    try { localStorage.setItem('rainvibe.actionboard.q', q); } catch {}
+  }, [q]);
   if (!open) return null;
   const filtered = React.useMemo(() => {
     if (q.startsWith('>')) {

@@ -18,6 +18,13 @@ const RunConsole: React.FC = () => {
   };
   const onClear = () => setOut('');
   const onCopy = async () => { try { await navigator.clipboard.writeText(out); } catch {} };
+  const onSaveOut = () => {
+    try {
+      const ts = new Date().toISOString().replace(/[:.]/g, '-');
+      (window as any).rainvibe?.writeTextFile?.(`.rainvibe/exports/run-${ts}.log`, out);
+      (window as any).rainvibe?.revealInOS?.('.rainvibe/exports');
+    } catch {}
+  };
   return (
     <div className="h-full flex flex-col text-xs">
       <div className="flex gap-2">
@@ -45,6 +52,7 @@ const RunConsole: React.FC = () => {
         <button disabled={busy} onClick={onRun} className="px-3 py-1 border border-white/15 rounded hover:bg-white/10 disabled:opacity-50">Run</button>
         <button onClick={onClear} className="px-3 py-1 border border-white/15 rounded hover:bg-white/10">Clear</button>
         <button onClick={onCopy} className="px-3 py-1 border border-white/15 rounded hover:bg-white/10">Copy</button>
+        <button onClick={onSaveOut} className="px-3 py-1 border border-white/15 rounded hover:bg-white/10">Save</button>
       </div>
       <pre className="mt-2 flex-1 overflow-auto border border-white/10 rounded p-2 bg-black text-white">{out}</pre>
     </div>

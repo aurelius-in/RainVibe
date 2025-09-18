@@ -61,7 +61,7 @@ const StatusBar: React.FC<{ modes: string[]; policyOn: boolean; policyCount: num
 };
 
 const App: React.FC = () => {
-  const { buffers, activeId, setActiveId, update, save, newBuffer, open, closeOthers, closeAll, close, renameBuffer } = useBuffers();
+  const { buffers, activeId, setActiveId, update, save, newBuffer, open, closeOthers, closeAll, close, renameBuffer, closeLeftOf, closeRightOf, reopenClosed, setLanguageFor } = useBuffers();
   const active = buffers.find(b => b.id === activeId) ?? buffers[0];
   const { active: activeModes, update: setModes } = useModes();
   const { status: policy, toggle: togglePolicy } = usePolicy();
@@ -87,6 +87,15 @@ const App: React.FC = () => {
   const [changesCount, setChangesCount] = React.useState<number>(0);
   const [branch, setBranch] = React.useState<string | null>(null);
   const dirtyCount = React.useMemo(() => buffers.filter(b => b.content !== (b.savedContent ?? '')).length, [buffers]);
+  React.useEffect(() => {
+    const openPathHandler = (e: any) => {
+      const p = String(e?.detail || '');
+      if (p) open(p);
+    };
+    window.addEventListener('open-path', openPathHandler as any);
+    return () => { window.removeEventListener('open-path', openPathHandler as any); };
+  }, [open]);
+
   React.useEffect(() => {
     try { document.title = `RainVibe — ${active?.path ?? ''}`; } catch {}
   }, [active?.path]);
@@ -227,6 +236,9 @@ const App: React.FC = () => {
     registry.register({ id: 'close-buffer', title: 'Close Current Tab', run: () => { if (activeId) close(activeId); } });
     registry.register({ id: 'close-others', title: 'Close Other Tabs', run: () => { if (activeId) closeOthers(activeId); } });
     registry.register({ id: 'close-all', title: 'Close All Tabs', run: () => { closeAll(); } });
+    registry.register({ id: 'close-left', title: 'Close Tabs to the Left', run: () => { if (activeId) closeLeftOf(activeId); } });
+    registry.register({ id: 'close-right', title: 'Close Tabs to the Right', run: () => { if (activeId) closeRightOf(activeId); } });
+    registry.register({ id: 'reopen-closed', title: 'Reopen Closed Tab', run: () => reopenClosed() });
     registry.register({ id: 'save-buffer', title: 'Save Buffer', run: async () => {
       try {
         if (prefs.formatOnSave) {
@@ -238,6 +250,14 @@ const App: React.FC = () => {
       try { (window as any).rainvibe?.appendAudit?.(JSON.stringify({ kind:'save', path: active?.path, ts: Date.now() })+'\n'); } catch {}
     } });
     registry.register({ id: 'save-all', title: 'Save All Buffers', run: () => { try { buffers.forEach(b => { (window as any).rainvibe?.writeTextFile?.(b.path, b.content); }); } catch {} } });
+    registry.register({ id: 'revert-buffer', title: 'Revert Buffer to Saved', run: () => {
+      if (!active?.path) return;
+      try { const txt = (window as any).rainvibe?.readTextFile?.(active.path); if (txt != null) update(active.id, String(txt)); } catch {}
+    }});
+    registry.register({ id: 'close-saved-tabs', title: 'Close All Saved Tabs', run: () => {
+      const saved = buffers.filter(b => (b.content === (b.savedContent ?? '')) && b.id !== 'welcome').map(b => b.id);
+      saved.forEach(id => close(id));
+    }});
     registry.register({ id: 'open-shortcuts', title: 'Open Shortcuts', run: () => setShortcutsOpen(true) });
     registry.register({ id: 'toggle-minimap', title: 'Toggle Minimap', run: () => {
       try { save({ ...prefs, minimap: !prefs.minimap }); } catch {}
@@ -327,6 +347,31 @@ const App: React.FC = () => {
     }});
     registry.register({ id: 'copy-relative-path', title: 'Copy Relative Path', run: async () => { try { await navigator.clipboard.writeText(active?.path || ''); } catch {} }});
     registry.register({ id: 'copy-filename', title: 'Copy Filename', run: async () => { try { const name = active?.path?.split('/')?.pop() || ''; await navigator.clipboard.writeText(name); } catch {} }});
+    registry.register({ id: 'find-in-workspace', title: 'Find in Workspace…', run: () => {
+      const term = prompt('Find in workspace:');
+      if (!term) return;
+      try {
+        window.dispatchEvent(new CustomEvent('rainvibe:search', { detail: term }));
+        window.dispatchEvent(new CustomEvent('rainvibe:left', { detail: 'search' }));
+      } catch {}
+    }});
+    registry.register({ id: 'change-language', title: 'Change Buffer Language…', run: () => {
+      const lang = prompt('Language id (e.g., typescript, javascript, json, markdown, css):', active?.language || 'plaintext');
+      if (!lang) return;
+      setLanguageFor(activeId, lang);
+    }});
+    registry.register({ id: 'next-tab', title: 'Next Tab', run: () => {
+      const idx = buffers.findIndex(b => b.id === activeId);
+      if (idx < 0) return;
+      const next = buffers[(idx + 1) % buffers.length];
+      if (next) setActiveId(next.id);
+    }});
+    registry.register({ id: 'previous-tab', title: 'Previous Tab', run: () => {
+      const idx = buffers.findIndex(b => b.id === activeId);
+      if (idx < 0) return;
+      const prev = buffers[(idx - 1 + buffers.length) % buffers.length];
+      if (prev) setActiveId(prev.id);
+    }});
     registry.register({ id: 'generate-feature-report', title: 'Generate Feature Coverage Report', run: () => {
       fetch('/scripts/feature-report.mjs').catch(() => {});
       alert('Run `pnpm report` to generate FEATURE_COVERAGE.md');
