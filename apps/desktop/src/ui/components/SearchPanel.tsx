@@ -1,8 +1,10 @@
 import React from 'react';
+import { useBuffers } from '../state/useBuffers';
 
 const SearchPanel: React.FC = () => {
   const [q, setQ] = React.useState('');
   const [results, setResults] = React.useState<{ path: string }[]>([]);
+  const { open } = useBuffers();
   const onSearch = () => {
     try {
       const entries = ((window as any).rainvibe?.listDir?.() ?? []) as Array<{ path: string; name: string; isDir: boolean }>;
@@ -17,7 +19,7 @@ const SearchPanel: React.FC = () => {
         <button onClick={onSearch} className="px-2 py-1 border border-white/15 rounded hover:bg-white/10">Search</button>
       </div>
       <div className="space-y-1 overflow-auto">
-        {results.map(r => <div key={r.path} className="px-2 py-1 border border-white/10 rounded">{r.path}</div>)}
+        {results.map(r => <button key={r.path} onClick={() => open(r.path)} className="w-full text-left px-2 py-1 border border-white/10 rounded hover:bg-white/10">{r.path}</button>)}
         {results.length === 0 && <div className="opacity-60">No results</div>}
       </div>
     </div>
