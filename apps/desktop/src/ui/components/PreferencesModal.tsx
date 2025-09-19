@@ -91,6 +91,11 @@ const PreferencesModal: React.FC<Props> = ({ open, onClose }) => {
           <button onClick={onClose} className="px-3 py-1 border border-white/15 rounded hover:bg-white/10">Cancel</button>
           <button onClick={() => { save(local); onClose(); }} className="px-3 py-1 border border-white/15 rounded hover:bg-white/10">Save</button>
         </div>
+        <div className="mt-3 text-xs opacity-70">Export/Import</div>
+        <div className="mt-1 flex gap-2">
+          <button onClick={async () => { try { await navigator.clipboard.writeText(JSON.stringify(local, null, 2)); } catch {} }} className="px-2 py-1 border border-white/15 rounded hover:bg-white/10 text-xs">Copy JSON</button>
+          <button onClick={() => { const raw = prompt('Paste preferences JSON'); if (!raw) return; try { const obj = JSON.parse(raw); save({ ...local, ...obj }); } catch {} }} className="px-2 py-1 border border-white/15 rounded hover:bg-white/10 text-xs">Paste JSON</button>
+        </div>
       </div>
     </div>
   );

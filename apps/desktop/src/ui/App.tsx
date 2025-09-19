@@ -113,9 +113,22 @@ const App: React.FC = () => {
         setShowDiff(true);
       } catch {}
     };
+    const diffHeadHandler = (e: any) => {
+      const p = String(e?.detail || '');
+      if (!p) return;
+      try {
+        const head = (window as any).rainvibe?.gitShowFile?.(p, 'HEAD') || '';
+        const buf = buffers.find(b => b.path === p);
+        const current = buf?.content ?? (window as any).rainvibe?.readTextFile?.(p) || '';
+        setDiffOriginal(head);
+        setDiffModified(current);
+        setShowDiff(true);
+      } catch {}
+    };
     window.addEventListener('open-path', openPathHandler as any);
     window.addEventListener('rainvibe:diff-file', diffHandler as any);
-    return () => { window.removeEventListener('open-path', openPathHandler as any); window.removeEventListener('rainvibe:diff-file', diffHandler as any); };
+    window.addEventListener('rainvibe:diff-file-head', diffHeadHandler as any);
+    return () => { window.removeEventListener('open-path', openPathHandler as any); window.removeEventListener('rainvibe:diff-file', diffHandler as any); window.removeEventListener('rainvibe:diff-file-head', diffHeadHandler as any); };
   }, [open, buffers]);
 
   React.useEffect(() => {
@@ -485,6 +498,22 @@ const App: React.FC = () => {
       if (meta && e.key.toLowerCase() === 's') { save(activeId); e.preventDefault(); }
       if (meta && e.key.toLowerCase() === 'z') { registry.get('undo-buffers')?.run(); e.preventDefault(); }
       if (meta && e.key.toLowerCase() === 'y') { registry.get('redo-buffers')?.run(); e.preventDefault(); }
+      // keybindings from preferences
+      try {
+        const parts: string[] = [];
+        if (meta) parts.push('mod');
+        if (e.shiftKey) parts.push('shift');
+        if (e.altKey) parts.push('alt');
+        const key = e.key.length === 1 ? e.key.toLowerCase() : e.key.toLowerCase();
+        parts.push(key);
+        const norm = parts.join('+');
+        const map = (prefs as any).keybindings || {};
+        const cmdId = map[norm];
+        if (cmdId) {
+          registry.get(cmdId)?.run();
+          e.preventDefault();
+        }
+      } catch {}
       if (meta && e.key.toLowerCase() === 'w') { // Close current
         if (e.shiftKey) { // Close others
           if (activeId) closeOthers(activeId);
