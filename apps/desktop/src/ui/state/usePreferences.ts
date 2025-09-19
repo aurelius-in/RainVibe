@@ -20,11 +20,13 @@ export interface Preferences {
   formatOnSavePerLanguage?: Record<string, boolean>;
   multiCursorModifier?: 'alt' | 'ctrlCmd';
   columnSelection?: boolean;
+  keybindings?: Record<string, string>; // normalized keystroke -> command id
+  aliases?: Record<string, string>; // alias -> command id
 }
 
 const KEY = 'rainvibe.preferences';
 const KEY_FIRST = 'rainvibe.firstRun';
-const DEFAULTS: Preferences = { provider: 'chatgpt', model: 'gpt-4o-mini', offlineOnly: false, apiKey: '', baseUrl: '', ghostText: true, telemetryOptIn: false, minimap: true, fontSize: 14, wordWrap: false, wordWrapColumn: 80, tokenMeter: true, lineNumbers: true, renderWhitespace: false, autosave: false, formatOnSave: false, formatOnSavePerLanguage: { typescript: true, javascript: true, json: true, markdown: true }, multiCursorModifier: 'alt', columnSelection: true };
+const DEFAULTS: Preferences = { provider: 'chatgpt', model: 'gpt-4o-mini', offlineOnly: false, apiKey: '', baseUrl: '', ghostText: true, telemetryOptIn: false, minimap: true, fontSize: 14, wordWrap: false, wordWrapColumn: 80, tokenMeter: true, lineNumbers: true, renderWhitespace: false, autosave: false, formatOnSave: false, formatOnSavePerLanguage: { typescript: true, javascript: true, json: true, markdown: true }, multiCursorModifier: 'alt', columnSelection: true, keybindings: {}, aliases: {} };
 
 export function usePreferences() {
   const [prefs, setPrefs] = React.useState<Preferences>(() => {
