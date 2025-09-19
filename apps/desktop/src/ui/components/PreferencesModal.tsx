@@ -138,6 +138,16 @@ const PreferencesModal: React.FC<Props> = ({ open, onClose }) => {
           <button onClick={async () => { try { await navigator.clipboard.writeText(JSON.stringify(local, null, 2)); } catch {} }} className="px-2 py-1 border border-white/15 rounded hover:bg-white/10 text-xs">Copy JSON</button>
           <button onClick={() => { const raw = prompt('Paste preferences JSON'); if (!raw) return; try { const obj = JSON.parse(raw); save({ ...local, ...obj }); } catch {} }} className="px-2 py-1 border border-white/15 rounded hover:bg-white/10 text-xs">Paste JSON</button>
         </div>
+        <div className="mt-3 text-xs opacity-70">Non-stop Mode</div>
+        <div className="mt-1 grid grid-cols-2 gap-2">
+          <label className="block">Interval (sec)
+            <input type="number" min={10} max={600} className="mt-1 bg-black border border-white/15 rounded px-2 py-1 w-full" value={(local as any).nonStopIntervalSec ?? 45} onChange={(e) => setLocal({ ...local, nonStopIntervalSec: Number(e.target.value) || 45 } as any)} />
+          </label>
+          <label className="flex items-center gap-2 mt-6">
+            <input type="checkbox" checked={!!(local as any).nonStopAutoPush} onChange={(e) => setLocal({ ...local, nonStopAutoPush: e.target.checked } as any)} />
+            <span>Auto-push to develop</span>
+          </label>
+        </div>
       </div>
     </div>
   );

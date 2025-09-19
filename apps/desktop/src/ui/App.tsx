@@ -104,6 +104,7 @@ const App: React.FC = () => {
   });
   const [changesCount, setChangesCount] = React.useState<number>(0);
   const [branch, setBranch] = React.useState<string | null>(null);
+  const [orgTs, setOrgTs] = React.useState<number | null>(null);
   const dirtyCount = React.useMemo(() => buffers.filter(b => b.content !== (b.savedContent ?? '')).length, [buffers]);
   React.useEffect(() => {
     const openPathHandler = (e: any) => {
@@ -174,6 +175,7 @@ const App: React.FC = () => {
   // Non-stop RainVibe mode: autosave/commit/push loop
   React.useEffect(() => {
     if (!(activeModes as any)?.includes?.('RainVibe')) return;
+    const period = Math.max(10, Math.min(600, (prefs as any).nonStopIntervalSec ?? 45)) * 1000;
     const id = setInterval(() => {
       try {
         // Save all open buffers to disk
@@ -188,19 +190,38 @@ const App: React.FC = () => {
           try { (window as any).rainvibe?.gitAdd?.(); } catch {}
           const msg = `RainVibe: checkpoint (${changes.length} files)`;
           try { (window as any).rainvibe?.gitCommit?.(msg); } catch {}
-          try { (window as any).rainvibe?.gitPush?.('origin', 'develop'); } catch {}
+          if ((prefs as any).nonStopAutoPush !== false) {
+            try { (window as any).rainvibe?.gitPush?.('origin', 'develop'); } catch {}
+          }
         }
         try { (window as any).rainvibe?.appendAudit?.(JSON.stringify({ kind: 'non_stop_tick', ts: Date.now(), changed: changes.length })+'\n'); } catch {}
       } catch {}
-    }, 45000);
+    }, period);
     return () => clearInterval(id);
-  }, [activeModes, buffers]);
+  }, [activeModes, buffers, (prefs as any).nonStopIntervalSec, (prefs as any).nonStopAutoPush]);
   React.useEffect(() => {
     try { localStorage.setItem('rainvibe.ui.assistantOpen', String(assistantOpen)); } catch {}
   }, [assistantOpen]);
   React.useEffect(() => {
     try { localStorage.setItem('rainvibe.ui.diagnosticsVisible', String(diagnosticsVisible)); } catch {}
   }, [diagnosticsVisible]);
+
+  // Org pack hot-reload: apply updated defaults when .rainvibe/org.json changes
+  React.useEffect(() => {
+    const id = setInterval(() => {
+      try {
+        const ts = (window as any).rainvibe?.orgMtime?.();
+        if (ts && ts !== orgTs) {
+          setOrgTs(ts);
+          const org = (window as any).rainvibe?.orgDefaults?.();
+          if (org?.defaults) {
+            save({ ...prefs, ...org.defaults });
+          }
+        }
+      } catch {}
+    }, 30000);
+    return () => clearInterval(id);
+  }, [orgTs, prefs]);
 
   // Autosave debounce for active buffer
   React.useEffect(() => {
@@ -284,6 +305,11 @@ const App: React.FC = () => {
     registry.register({ id: 'toggle-policy', title: 'Toggle Policy-Safe', run: () => {
       if (activeModes.includes('Basic')) return; // disabled in Basic
       togglePolicy();
+    }});
+    registry.register({ id: 'toggle-rainvibe', title: 'Toggle RainVibe Non-Stop Mode', run: () => {
+      const set = new Set(activeModes as any);
+      if (set.has('RainVibe' as any)) set.delete('RainVibe' as any); else set.add('RainVibe' as any);
+      setModes(Array.from(set) as any);
     }});
     registry.register({ id: 'open-preferences', title: 'Open Preferences', run: () => setPrefsOpen(true) });
     registry.register({ id: 'open-keybindings', title: 'Open Keybindings & Aliases', run: () => setKeysOpen(true) });

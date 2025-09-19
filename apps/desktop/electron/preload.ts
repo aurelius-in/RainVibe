@@ -39,6 +39,15 @@ contextBridge.exposeInMainWorld('rainvibe', {
     const p = path.join(repoRoot(), '.rainvibe', 'org.json');
     return safeReadJson(p);
   },
+  orgMtime(): number | null {
+    try {
+      const p = path.join(repoRoot(), '.rainvibe', 'org.json');
+      if (!fs.existsSync(p)) return null;
+      const stat = fs.statSync(p);
+      return stat.mtimeMs;
+    } catch { return null; }
+  }
+  ,
   loadPrompt(name: string): string | null {
     try {
       const p = path.join(repoRoot(), '.rainvibe', 'prompts', `${name}.md`);
@@ -362,6 +371,63 @@ contextBridge.exposeInMainWorld('rainvibe', {
       if (fs.existsSync(dir)) fs.rmSync(dir, { recursive: true, force: true });
       return true;
     } catch { return false; }
+  }
+  ,
+  updateKit(name: string, note?: string): boolean {
+    try {
+      const dir = path.join(repoRoot(), '.rainvibe', 'kits', name);
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      const p = path.join(dir, 'README.md');
+      const prev = fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : '';
+      const next = (prev ? prev + '\n\n' : '') + (note || `Updated at ${new Date().toISOString()}`);
+      fs.writeFileSync(p, next, 'utf8');
+      return true;
+    } catch { return false; }
+  }
+  ,
+  buildIndex(): number {
+    try {
+      const root = repoRoot();
+      const idxPath = path.join(root, '.rainvibe', 'index.json');
+      const files: Array<{ path: string; size: number }> = [];
+      const ignore = new Set(['node_modules','dist','build','out']);
+      const walk = (p: string, rel: string) => {
+        const entries = fs.readdirSync(p, { withFileTypes: true });
+        for (const e of entries) {
+          if (e.name.startsWith('.')) continue;
+          if (ignore.has(e.name)) continue;
+          const abs = path.join(p, e.name);
+          const r = path.join(rel, e.name).replace(/\\/g,'/');
+          if (e.isDirectory()) { walk(abs, r); continue; }
+          const stat = fs.statSync(abs);
+          if (stat.size > 1024*1024) continue;
+          files.push({ path: r, size: stat.size });
+        }
+      };
+      walk(root, '');
+      fs.mkdirSync(path.dirname(idxPath), { recursive: true });
+      fs.writeFileSync(idxPath, JSON.stringify({ ts: Date.now(), files }, null, 2), 'utf8');
+      return files.length;
+    } catch { return 0; }
+  }
+  ,
+  searchIndex(term: string): { path: string; line: number; preview: string }[] {
+    try {
+      const root = repoRoot();
+      const idxPath = path.join(root, '.rainvibe', 'index.json');
+      if (!fs.existsSync(idxPath)) return [];
+      const idx = JSON.parse(fs.readFileSync(idxPath, 'utf8'));
+      const out: { path: string; line: number; preview: string }[] = [];
+      for (const f of idx.files || []) {
+        const abs = path.join(root, f.path);
+        try {
+          const data = fs.readFileSync(abs, 'utf8');
+          const lines = data.split(/\r?\n/);
+          lines.forEach((ln, i) => { if (ln.toLowerCase().includes(term.toLowerCase())) out.push({ path: f.path, line: i+1, preview: ln.trim().slice(0, 200) }); });
+        } catch {}
+      }
+      return out;
+    } catch { return []; }
   }
   ,
   formatWithPrettier(text: string, filename?: string): string | null {
