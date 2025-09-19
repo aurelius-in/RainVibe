@@ -165,6 +165,7 @@ const AssistantPanel: React.FC<Props> = ({ open, audit, diagnostics, onOpenPath,
               <button onClick={() => { const b = prompt('Create branch:'); if (b) (window as any).rainvibe?.gitCheckout?.(b, true); }} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10">New Branch…</button>
               <button onClick={() => { const b = prompt('Switch to branch:'); if (b) (window as any).rainvibe?.gitCheckout?.(b, false); }} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10">Switch Branch…</button>
               <button onClick={() => (window as any).rainvibe?.gitInit?.()} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10">Init Repo</button>
+              <button onClick={() => { try { const c = (window as any).rainvibe?.detectConflicts?.() || []; alert(c.length ? c.map((x:any)=>`${x.file} (${x.lines})`).join('\n') : 'No conflicts'); } catch {} }} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10">Detect Conflicts</button>
             </div>
             <div className="space-y-1">
               {(() => {
@@ -302,6 +303,20 @@ const AssistantPanel: React.FC<Props> = ({ open, audit, diagnostics, onOpenPath,
                     <div key={i} className="border border-white/10 rounded px-2 py-1 text-xs">{h}</div>
                   ));
                 } catch { return <div className="opacity-60 text-xs">No hints available</div>; }
+              })()}
+            </div>
+            <div className="space-y-1">
+              <div className="opacity-70 text-xs">Violations (changed files)</div>
+              {(() => {
+                try {
+                  const list = (window as any).rainvibe?.policyCheckChanged?.() || [];
+                  if (!list.length) return <div className="opacity-60 text-xs">No violations</div>;
+                  return list.map((v: any, i: number) => (
+                    <div key={i} className="border border-white/10 rounded px-2 py-1 text-xs">
+                      <span className="opacity-70">{v.file}:{v.line}</span> — {v.message}
+                    </div>
+                  ));
+                } catch { return <div className="opacity-60 text-xs">No violations</div>; }
               })()}
             </div>
           </div>

@@ -52,6 +52,10 @@ declare global {
       indexSymbols?: () => number;
       searchSymbols?: (term: string) => { path: string; line: number; name: string; kind: string }[];
       policyHints?: () => string[];
+      loadPolicyRules?: () => Array<{ name: string; pattern: string; message?: string }>;
+      policyCheckFiles?: (files: string[]) => { file: string; line: number; message: string }[];
+      policyCheckChanged?: () => { file: string; line: number; message: string }[];
+      detectConflicts?: () => { file: string; lines: number }[];
       readPackageVersion?: () => string | null;
       checkUpdateLocal?: () => { current: string | null; latest: string | null; updateAvailable: boolean };
       runPtyStart?: (cmd: string, cwdRel?: string) => string | null;
@@ -61,6 +65,7 @@ declare global {
       saveSecret?: (key: string, value: string) => boolean;
       loadSecret?: (key: string) => string | null;
       deleteSecret?: (key: string) => boolean;
+      renameSymbol?: (oldName: string, newName: string) => number;
     };
   }
 }
