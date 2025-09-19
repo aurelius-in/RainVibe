@@ -48,8 +48,8 @@ const WorkspaceTree: React.FC = () => {
   return (
     <div className="h-full flex flex-col" onMouseDown={() => setMenu(null)}>
       <div className="flex items-center gap-2 mb-2">
-        <button onClick={() => setCwd('')} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10 text-xs">Root</button>
-        {cwd && <button onClick={() => { const parts = cwd.split('/'); parts.pop(); setCwd(parts.join('/')); }} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10 text-xs">Up</button>}
+        <button aria-label="Go to root" onClick={() => setCwd('')} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10 text-xs">Root</button>
+        {cwd && <button aria-label="Go up one folder" onClick={() => { const parts = cwd.split('/'); parts.pop(); setCwd(parts.join('/')); }} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10 text-xs">Up</button>}
         {cwd && <span className="text-xs opacity-70">{cwd}</span>}
       </div>
       <input aria-label="Search workspace" placeholder="Search workspace" value={filter} onChange={(e) => { setFilter(e.target.value); try { localStorage.setItem('rainvibe.workspace.filter', e.target.value); } catch {} }} className="mb-2 px-2 py-1 bg-black text-white border border-white/15 rounded text-xs" />
@@ -77,6 +77,8 @@ const WorkspaceTree: React.FC = () => {
               }
               setDrag(null);
             }}
+            role="treeitem"
+            aria-selected={selected.has(e.path)}
             className={`flex items-center gap-2 px-2 py-1 rounded cursor-pointer ${selected.has(e.path) ? 'bg-white/10' : 'hover:bg-white/10'}`}
             title={e.path}
           >

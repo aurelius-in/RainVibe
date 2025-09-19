@@ -21,6 +21,7 @@ import DiffPatchPreview from './components/DiffPatchPreview';
 import ShortcutsModal from './components/ShortcutsModal';
 import KeybindingsModal from './components/KeybindingsModal';
 import UnifiedDiffModal from './components/UnifiedDiffModal';
+import UpdateBanner from './components/UpdateBanner';
 
 const TopBar: React.FC<{ modes: string[]; version?: string; onChange: (m: string[]) => void; onOpenBoard: () => void; onToggleAssistant: () => void; }>
   = ({ modes, version, onChange, onOpenBoard, onToggleAssistant }) => {
@@ -797,8 +798,16 @@ const App: React.FC = () => {
         onOpenBoard={() => setBoardOpen(true)}
         onToggleAssistant={() => setAssistantOpen(v => !v)}
       />
+      <UpdateBanner available={updateAvailable} onClick={() => {
+        try {
+          const res = (window as any).rainvibe?.checkUpdateLocal?.();
+          if (!res) return;
+          alert(`Current: ${res.current || 'unknown'}\nLatest: ${res.latest || 'unknown'}`);
+          (window as any).rainvibe?.openExternalUrl?.('https://github.com/aurelius-in/RainVibe/releases');
+        } catch {}
+      }} />
       <div className="flex-1 grid grid-cols-[260px_minmax(0,1fr)_360px] grid-rows-[minmax(0,1fr)]">
-        <aside className="border-r border-white/10 p-2">
+        <aside className="border-r border-white/10 p-2" aria-label="Left Rail">
           <div className="text-sm font-semibold mb-2">Left Rail</div>
           <div className="flex gap-2 mb-2 text-xs">
             <button onClick={() => { setLeftRail('workspace'); try { localStorage.setItem('rainvibe.ui.leftRail', 'workspace'); } catch {} }} className={`px-2 py-0.5 border border-white/15 rounded ${leftRail==='workspace' ? 'bg-white/10' : 'hover:bg-white/10'}`}>Workspace</button>
@@ -921,7 +930,7 @@ const App: React.FC = () => {
             />
           </div>
         </main>
-        <aside className="border-l border-white/10 p-0">
+        <aside className="border-l border-white/10 p-0" aria-label="Assistant Panel">
           <AssistantPanel
             open={assistantOpen}
             diagnostics={diagnostics.map(d => ({ message: d.message, severity: d.severity, startLine: d.startLine, startColumn: d.startColumn }))}
