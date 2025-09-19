@@ -21,6 +21,7 @@ declare global {
       gitRestore?: (relPath: string) => boolean;
       gitShowFile?: (relPath: string, ref?: string) => string | null;
       gitLog?: (limit?: number) => { hash: string; author: string; date: string; subject: string }[];
+      gitBlame?: (relPath: string, maxLines?: number) => string | null;
       gitBranch?: () => string | null;
       appendAudit?: (line: string) => boolean;
       clearAudit?: () => boolean;
