@@ -52,7 +52,7 @@ const WorkspaceTree: React.FC = () => {
         {cwd && <button onClick={() => { const parts = cwd.split('/'); parts.pop(); setCwd(parts.join('/')); }} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10 text-xs">Up</button>}
         {cwd && <span className="text-xs opacity-70">{cwd}</span>}
       </div>
-      <input placeholder="Search workspace" value={filter} onChange={(e) => { setFilter(e.target.value); try { localStorage.setItem('rainvibe.workspace.filter', e.target.value); } catch {} }} className="mb-2 px-2 py-1 bg-black text-white border border-white/15 rounded text-xs" />
+      <input aria-label="Search workspace" placeholder="Search workspace" value={filter} onChange={(e) => { setFilter(e.target.value); try { localStorage.setItem('rainvibe.workspace.filter', e.target.value); } catch {} }} className="mb-2 px-2 py-1 bg-black text-white border border-white/15 rounded text-xs" />
       <div className="text-xs space-y-1 overflow-auto" tabIndex={0} onKeyDown={(e) => {
         if (e.key === 'F2' && menu?.entry) {
           const to = prompt('Rename to (relative path):', menu.entry.path);

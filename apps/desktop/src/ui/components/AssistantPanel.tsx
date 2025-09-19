@@ -2,6 +2,7 @@ import React from 'react';
 import { useFlows } from '../state/useFlows';
 import ChatTab from './ChatTab';
 import RunConsole from './RunConsole';
+import BlameModal from './BlameModal';
 
 type Tab = 'Chat' | 'Tasks' | 'Modes' | 'Trails' | 'Run' | 'Diagnostics' | 'Changes' | 'Kits' | 'Guardrails' | 'Navigation';
 
@@ -32,6 +33,8 @@ const AssistantPanel: React.FC<Props> = ({ open, audit, diagnostics, onOpenPath,
     return () => window.removeEventListener('rainvibe:assistantTab', handler as any);
   }, []);
   if (!open) return null;
+  const [blameOpen, setBlameOpen] = React.useState(false);
+  const [blameText, setBlameText] = React.useState('');
   return (
     <div className="h-full w-full flex flex-col">
       <div className="flex gap-2 border-b border-white/10 px-2 h-8 items-center text-sm">
@@ -186,7 +189,7 @@ const AssistantPanel: React.FC<Props> = ({ open, audit, diagnostics, onOpenPath,
                           <button onClick={() => (window as any).rainvibe?.gitAdd?.(e.path)} className="px-1 py-0.5 border border-white/15 rounded hover:bg-white/10">Stage</button>
                           <button onClick={() => (window as any).rainvibe?.gitRestore?.(e.path)} className="px-1 py-0.5 border border-white/15 rounded hover:bg-white/10">Restore</button>
                           <button onClick={() => window.dispatchEvent(new CustomEvent('rainvibe:diff-file', { detail: e.path }))} className="px-1 py-0.5 border border-white/15 rounded hover:bg-white/10">Diff</button>
-                          <button onClick={() => { const out = (window as any).rainvibe?.gitBlame?.(e.path, 200); alert(out ? out.slice(0, 2000) : 'No blame'); }} className="px-1 py-0.5 border border-white/15 rounded hover:bg-white/10">Blame</button>
+                          <button aria-label={`Blame ${e.path}`} onClick={() => { const out = (window as any).rainvibe?.gitBlame?.(e.path, 2000); if (out) { setBlameText(out); setBlameOpen(true); } else { alert('No blame'); } }} className="px-1 py-0.5 border border-white/15 rounded hover:bg-white/10">Blame</button>
                           <button onClick={() => window.dispatchEvent(new CustomEvent('rainvibe:diff-hunks', { detail: e.path }))} className="px-1 py-0.5 border border-white/15 rounded hover:bg-white/10">Hunks</button>
                         </div>
                       </div>
@@ -325,6 +328,7 @@ const AssistantPanel: React.FC<Props> = ({ open, audit, diagnostics, onOpenPath,
           </div>
         )}
       </div>
+      <BlameModal open={blameOpen} text={blameText} onClose={() => setBlameOpen(false)} />
     </div>
   );
 };
