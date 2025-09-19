@@ -40,12 +40,15 @@ const TopBar: React.FC<{ modes: string[]; version?: string; onChange: (m: string
   );
 };
 
-const StatusBar: React.FC<{ modes: string[]; policyOn: boolean; policyCount: number; auditCount: number; changesCount: number; dirtyCount?: number; caret?: { line: number; column: number }; language?: string; model: string; provider: string; branch?: string | null; offline: boolean; tokensPct: number; tokenMeter?: boolean; diagCounts?: { error: number; warning: number; info: number }; onClickPolicy?: () => void; onClickAudit?: () => void; onClickModel?: () => void; onClickChanges?: () => void; onClickTokens?: () => void; onClickBranch?: () => void; onClickEncoding?: () => void }>= ({ modes, policyOn, policyCount, auditCount, changesCount, dirtyCount, caret, language, model, provider, branch, offline, tokensPct, tokenMeter, diagCounts, onClickPolicy, onClickAudit, onClickModel, onClickChanges, onClickTokens, onClickBranch, onClickEncoding }) => {
+const StatusBar: React.FC<{ modes: string[]; policyOn: boolean; policyCount: number; auditCount: number; changesCount: number; dirtyCount?: number; caret?: { line: number; column: number }; language?: string; model: string; provider: string; branch?: string | null; offline: boolean; tokensPct: number; tokenMeter?: boolean; diagCounts?: { error: number; warning: number; info: number }; updateAvailable?: boolean; onClickPolicy?: () => void; onClickAudit?: () => void; onClickModel?: () => void; onClickChanges?: () => void; onClickTokens?: () => void; onClickBranch?: () => void; onClickEncoding?: () => void; onClickUpdate?: () => void }>= ({ modes, policyOn, policyCount, auditCount, changesCount, dirtyCount, caret, language, model, provider, branch, offline, tokensPct, tokenMeter, diagCounts, updateAvailable, onClickPolicy, onClickAudit, onClickModel, onClickChanges, onClickTokens, onClickBranch, onClickEncoding, onClickUpdate }) => {
   return (
     <div className="h-6 text-xs px-3 flex items-center gap-4 border-t border-white/10 bg-black text-white/80">
       <button onClick={onClickModel} className="underline-offset-2 hover:underline">model: {model}</button>
       <span>provider: {provider}{offline ? ' (offline)' : ''}</span>
       {branch && <button onClick={onClickBranch} className="underline-offset-2 hover:underline">branch: {branch}</button>}
+      {updateAvailable !== undefined && (
+        <button onClick={onClickUpdate} className={`underline-offset-2 hover:underline ${updateAvailable ? 'text-yellow-300' : ''}`}>update: {updateAvailable ? 'available' : 'none'}</button>
+      )}
       <span>mode: {modes.join(' + ') || '—'}</span>
       <button onClick={onClickPolicy} className="underline-offset-2 hover:underline">policy: {policyOn ? `on (${policyCount})` : 'off'}</button>
       <button onClick={onClickAudit} className="underline-offset-2 hover:underline">audit: {auditCount}</button>
@@ -91,6 +94,7 @@ const App: React.FC = () => {
   const [keysOpen, setKeysOpen] = React.useState(false);
   const [caret, setCaret] = React.useState<{ line: number; column: number }>({ line: 1, column: 1 });
   const { chat } = useAiClient();
+  const [updateAvailable, setUpdateAvailable] = React.useState<boolean | undefined>(undefined);
   const nonStopMetaRef = React.useRef<{ lastCommitAt: number; lastPushAt: number; commitsSincePush: number }>({ lastCommitAt: 0, lastPushAt: 0, commitsSincePush: 0 });
   const [diagnostics, setDiagnostics] = React.useState<Array<{ message: string; severity: 'error' | 'warning' | 'info'; startLine: number; startColumn: number; endLine: number; endColumn: number }>>([]);
   const diagCounts = React.useMemo(() => {
@@ -172,6 +176,17 @@ const App: React.FC = () => {
     try { document.title = `RainVibe — ${active?.path ?? ''}`; } catch {}
     try { (window as any).activePath = active?.path || ''; } catch {}
   }, [active?.path]);
+  React.useEffect(() => {
+    const fn = () => {
+      try {
+        const res = (window as any).rainvibe?.checkUpdateLocal?.();
+        if (res) setUpdateAvailable(!!res.updateAvailable);
+      } catch { setUpdateAvailable(undefined); }
+    };
+    fn();
+    const id = setInterval(fn, 10 * 60 * 1000);
+    return () => clearInterval(id);
+  }, []);
   // Daily push reminder
   React.useEffect(() => {
     const id = setInterval(() => {
@@ -223,7 +238,11 @@ const App: React.FC = () => {
         }
         if (shouldCommit) {
           try { (window as any).rainvibe?.gitAdd?.(); } catch {}
-          const msg = `RainVibe: checkpoint (${changes.length} files)`;
+          const tpl = (prefs as any).commitTemplate || '{scope}: {summary}\n\n{details}';
+          const msg = tpl
+            .replace('{scope}', 'non-stop')
+            .replace('{summary}', `checkpoint (${changes.length} files)`) 
+            .replace('{details}', 'automated save/commit per policy');
           try {
             const ok = (window as any).rainvibe?.gitCommit?.(msg);
             if (ok) {
@@ -452,7 +471,7 @@ const App: React.FC = () => {
     }});
     registry.register({ id: 'git-add-all', title: 'Git: Stage All', run: () => { try { (window as any).rainvibe?.gitAdd?.(); } catch {} } });
     registry.register({ id: 'git-add-current', title: 'Git: Stage Current File', run: () => { if (active?.path) { try { (window as any).rainvibe?.gitAdd?.(active.path); } catch {} } } });
-    registry.register({ id: 'git-commit', title: 'Git: Commit…', run: () => { const m = prompt('Commit message:'); if (!m) return; try { (window as any).rainvibe?.gitCommit?.(m); } catch {} } });
+    registry.register({ id: 'git-commit', title: 'Git: Commit…', run: () => { const def = ((prefs as any).commitTemplate || '{scope}: {summary}').replace('{scope}', 'manual').replace('{summary}', 'message'); const m = prompt('Commit message:', def); if (!m) return; try { (window as any).rainvibe?.gitCommit?.(m); } catch {} } });
     registry.register({ id: 'git-push-now', title: 'Git: Push Now', run: () => { try { (window as any).rainvibe?.gitPush?.('origin', 'develop'); } catch {} } });
     registry.register({ id: 'git-branch-create', title: 'Git: Create Branch…', run: () => { const b = prompt('New branch name:'); if (!b) return; try { (window as any).rainvibe?.gitCheckout?.(b, true); setBranch((window as any).rainvibe?.gitBranch?.() || null); } catch {} } });
     registry.register({ id: 'git-branch-switch', title: 'Git: Switch Branch…', run: () => { const b = prompt('Switch to branch:'); if (!b) return; try { (window as any).rainvibe?.gitCheckout?.(b, false); setBranch((window as any).rainvibe?.gitBranch?.() || null); } catch {} } });
