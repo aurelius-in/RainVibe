@@ -18,11 +18,13 @@ export interface Preferences {
   formatOnSave?: boolean;
   wordWrapColumn?: number;
   formatOnSavePerLanguage?: Record<string, boolean>;
+  multiCursorModifier?: 'alt' | 'ctrlCmd';
+  columnSelection?: boolean;
 }
 
 const KEY = 'rainvibe.preferences';
 const KEY_FIRST = 'rainvibe.firstRun';
-const DEFAULTS: Preferences = { provider: 'chatgpt', model: 'gpt-4o-mini', offlineOnly: false, apiKey: '', baseUrl: '', ghostText: true, telemetryOptIn: false, minimap: true, fontSize: 14, wordWrap: false, wordWrapColumn: 80, tokenMeter: true, lineNumbers: true, renderWhitespace: false, autosave: false, formatOnSave: false, formatOnSavePerLanguage: { typescript: true, javascript: true, json: true, markdown: true } };
+const DEFAULTS: Preferences = { provider: 'chatgpt', model: 'gpt-4o-mini', offlineOnly: false, apiKey: '', baseUrl: '', ghostText: true, telemetryOptIn: false, minimap: true, fontSize: 14, wordWrap: false, wordWrapColumn: 80, tokenMeter: true, lineNumbers: true, renderWhitespace: false, autosave: false, formatOnSave: false, formatOnSavePerLanguage: { typescript: true, javascript: true, json: true, markdown: true }, multiCursorModifier: 'alt', columnSelection: true };
 
 export function usePreferences() {
   const [prefs, setPrefs] = React.useState<Preferences>(() => {

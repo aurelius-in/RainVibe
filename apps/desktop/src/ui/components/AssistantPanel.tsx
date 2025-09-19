@@ -87,7 +87,21 @@ const AssistantPanel: React.FC<Props> = ({ open, audit, diagnostics, onOpenPath,
             </div>
           </div>
         )}
-        {tab === 'Run' && <RunConsole />}
+        {tab === 'Run' && (
+          <div className="flex flex-col gap-2 h-full">
+            <div className="flex flex-wrap gap-2 p-2 border-b border-white/10">
+              {(() => {
+                try {
+                  const scripts = (window as any).rainvibe?.readPackageScripts?.() || [];
+                  return scripts.map((s: string) => (
+                    <button key={s} onClick={() => window.dispatchEvent(new CustomEvent('rainvibe:run-script', { detail: s }))} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10 text-xs">{s}</button>
+                  ));
+                } catch { return null; }
+              })()}
+            </div>
+            <RunConsole />
+          </div>
+        )}
         {tab === 'Diagnostics' && (
           <div className="space-y-2">
             <div className="flex items-center gap-2">
@@ -122,6 +136,7 @@ const AssistantPanel: React.FC<Props> = ({ open, audit, diagnostics, onOpenPath,
               <button onClick={() => { const msg = prompt('Stash message (optional):') || undefined; (window as any).rainvibe?.gitStash?.(msg); }} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10">Stash…</button>
               <button onClick={() => { const b = prompt('Create branch:'); if (b) (window as any).rainvibe?.gitCheckout?.(b, true); }} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10">New Branch…</button>
               <button onClick={() => { const b = prompt('Switch to branch:'); if (b) (window as any).rainvibe?.gitCheckout?.(b, false); }} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10">Switch Branch…</button>
+              <button onClick={() => (window as any).rainvibe?.gitInit?.()} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10">Init Repo</button>
             </div>
             <div className="space-y-1">
               {(() => {
@@ -138,6 +153,7 @@ const AssistantPanel: React.FC<Props> = ({ open, audit, diagnostics, onOpenPath,
                         <div className="flex items-center gap-1">
                           <button onClick={() => (window as any).rainvibe?.gitAdd?.(e.path)} className="px-1 py-0.5 border border-white/15 rounded hover:bg-white/10">Stage</button>
                           <button onClick={() => (window as any).rainvibe?.gitRestore?.(e.path)} className="px-1 py-0.5 border border-white/15 rounded hover:bg-white/10">Restore</button>
+                          <button onClick={() => window.dispatchEvent(new CustomEvent('rainvibe:diff-file', { detail: e.path }))} className="px-1 py-0.5 border border-white/15 rounded hover:bg-white/10">Diff</button>
                         </div>
                       </div>
                     </div>
@@ -145,6 +161,24 @@ const AssistantPanel: React.FC<Props> = ({ open, audit, diagnostics, onOpenPath,
                 } catch {
                   return <div className="opacity-60">No changes</div>;
                 }
+              })()}
+            </div>
+            <div className="space-y-1">
+              <div className="opacity-70 text-xs">Stashes</div>
+              {(() => {
+                try {
+                  const items = (window as any).rainvibe?.gitStashList?.() || [];
+                  if (!items.length) return <div className="opacity-60 text-xs">No stashes</div>;
+                  return items.map((s: any, i: number) => (
+                    <div key={i} className="border border-white/10 rounded px-2 py-1 text-xs flex items-center justify-between">
+                      <span>{s.name} — {s.message}</span>
+                      <span className="flex gap-1">
+                        <button onClick={() => (window as any).rainvibe?.gitStashApply?.(s.name)} className="px-1 py-0.5 border border-white/15 rounded hover:bg-white/10">Apply</button>
+                        <button onClick={() => (window as any).rainvibe?.gitStashDrop?.(s.name)} className="px-1 py-0.5 border border-white/15 rounded hover:bg-white/10">Drop</button>
+                      </span>
+                    </div>
+                  ));
+                } catch { return null; }
               })()}
             </div>
           </div>

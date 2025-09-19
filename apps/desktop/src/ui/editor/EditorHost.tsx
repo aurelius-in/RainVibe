@@ -16,9 +16,11 @@ interface Props {
   onReady?: (api: { revealPosition: (line: number, column: number) => void; trigger: (actionId: string) => void; insertText: (text: string) => void; getSelectionText: () => string; getCursor: () => { line: number; column: number } }) => void;
   onCursorChange?: (pos: { line: number; column: number }) => void;
   onSelectionChange?: (text: string) => void;
+  multiCursorModifier?: 'alt' | 'ctrlCmd';
+  columnSelection?: boolean;
 }
 
-const EditorHost: React.FC<Props> = ({ value, language, onChange, inlineAutocompleteEnabled, diagnostics, minimap, fontSize, wordWrap, wordWrapColumn, lineNumbers, renderWhitespace, onReady, onCursorChange, onSelectionChange }) => {
+const EditorHost: React.FC<Props> = ({ value, language, onChange, inlineAutocompleteEnabled, diagnostics, minimap, fontSize, wordWrap, wordWrapColumn, lineNumbers, renderWhitespace, onReady, onCursorChange, onSelectionChange, multiCursorModifier, columnSelection }) => {
   const editorRef = React.useRef<any>(null);
   const monacoRef = React.useRef<any>(null);
 
@@ -135,6 +137,8 @@ const EditorHost: React.FC<Props> = ({ value, language, onChange, inlineAutocomp
         wordWrapColumn: wordWrapColumn ?? 80,
         renderWhitespace: renderWhitespace ? 'all' : 'none',
         lineNumbers: lineNumbers === false ? 'off' : 'on',
+        multiCursorModifier: multiCursorModifier ?? 'alt',
+        columnSelection: columnSelection ?? true,
         automaticLayout: true,
       }}
     />
