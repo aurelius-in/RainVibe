@@ -178,12 +178,17 @@ const AssistantPanel: React.FC<Props> = ({ open, audit, diagnostics, onOpenPath,
                 try {
                   const entries = (window as any).rainvibe?.gitStatus?.() || [];
                   if (!entries.length) return <div className="opacity-60">No changes</div>;
+                  const conflicts = (window as any).rainvibe?.detectConflicts?.() || [];
+                  const conflictSet = new Set(conflicts.map((c:any) => c.file));
                   return entries.map((e: any, i: number) => (
                     <div key={i} className="border border-white/10 rounded px-2 py-1 text-xs hover:bg-white/10">
                       <div className="flex items-center justify-between gap-2">
                         <button className="text-left flex-1 hover:underline" onClick={() => onOpenPath && onOpenPath(e.path)}>
                           <span className="opacity-70 mr-2">{e.status}</span>
                           {e.path}
+                          {conflictSet.has(e.path) && (
+                            <span className="ml-2 px-1 py-0.5 text-[10px] rounded bg-red-600/30 border border-red-500/40">CONFLICT</span>
+                          )}
                         </button>
                         <div className="flex items-center gap-1">
                           <button onClick={() => (window as any).rainvibe?.gitAdd?.(e.path)} className="px-1 py-0.5 border border-white/15 rounded hover:bg-white/10">Stage</button>
@@ -191,6 +196,13 @@ const AssistantPanel: React.FC<Props> = ({ open, audit, diagnostics, onOpenPath,
                           <button onClick={() => window.dispatchEvent(new CustomEvent('rainvibe:diff-file', { detail: e.path }))} className="px-1 py-0.5 border border-white/15 rounded hover:bg-white/10">Diff</button>
                           <button aria-label={`Blame ${e.path}`} onClick={() => { const out = (window as any).rainvibe?.gitBlame?.(e.path, 2000); if (out) { setBlameText(out); setBlameOpen(true); } else { alert('No blame'); } }} className="px-1 py-0.5 border border-white/15 rounded hover:bg-white/10">Blame</button>
                           <button onClick={() => window.dispatchEvent(new CustomEvent('rainvibe:diff-hunks', { detail: e.path }))} className="px-1 py-0.5 border border-white/15 rounded hover:bg-white/10">Hunks</button>
+                          {conflictSet.has(e.path) && (
+                            <>
+                              <button onClick={() => { (window as any).rainvibe?.resolveConflict?.(e.path, 'ours'); alert('Applied ours'); }} className="px-1 py-0.5 border border-white/15 rounded hover:bg-white/10">Ours</button>
+                              <button onClick={() => { (window as any).rainvibe?.resolveConflict?.(e.path, 'theirs'); alert('Applied theirs'); }} className="px-1 py-0.5 border border-white/15 rounded hover:bg-white/10">Theirs</button>
+                              <button onClick={() => { (window as any).rainvibe?.gitAdd?.(e.path); alert('Marked resolved'); }} className="px-1 py-0.5 border border-white/15 rounded hover:bg-white/10">Mark Resolved</button>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
