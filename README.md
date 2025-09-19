@@ -150,6 +150,30 @@ RAINVIBE_ORG_CONFIG=.rainvibe/org.json
 RAINVIBE_ANON_TELEMETRY=off
 ```
 
+### Non‑stop Coding (opt‑in)
+
+RainVibe supports a non‑stop mode that continuously codes from start to finish without prompting you. When enabled, the IDE will:
+
+- Autosave open buffers at a configurable interval
+- Auto‑commit according to your policy (per feature, after N changes, or every T minutes)
+- Optionally auto‑push to a branch (e.g., `develop`) based on your push policy
+
+How to enable
+- Toggle the mode via the Action Board: “Toggle RainVibe Non‑Stop Mode”, or use the Modes switcher and select “RainVibe”
+- In Preferences → Non‑stop Mode, configure the interval (seconds) and whether to auto‑push
+- In Preferences → Commit & Push Policies, set:
+  - Commit policy: per feature, after N changes (1/3/5/10), or every T minutes (15/30/60)
+  - Push policy: after N commits (3/5/10) or every T minutes (15/30/60), or manual
+
+Recommended defaults
+- Commit after ~3 changes or at the end of a small feature
+- Push after 5 commits or every 30 minutes (whichever comes first)
+
+Safeguards
+- Manual actions always override (you can commit/push whenever you like)
+- Optionally push on green CI or version bumps
+- Daily push reminder to avoid long‑lived local divergence
+
 Org provisioning:
 
 ```

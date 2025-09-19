@@ -1,7 +1,7 @@
 import { contextBridge, shell } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
-import { execSync } from 'node:child_process';
+import { execSync, spawn } from 'node:child_process';
 import crypto from 'node:crypto';
 
 function safeReadJson(filePath: string): any | null {
@@ -373,6 +373,37 @@ contextBridge.exposeInMainWorld('rainvibe', {
     } catch { return false; }
   }
   ,
+  saveSecret(key: string, value: string): boolean {
+    try {
+      const p = path.join(repoRoot(), '.rainvibe', 'secrets.json');
+      const obj = safeReadJson(p) || {};
+      obj[key] = value;
+      fs.mkdirSync(path.dirname(p), { recursive: true });
+      fs.writeFileSync(p, JSON.stringify(obj, null, 2), 'utf8');
+      return true;
+    } catch { return false; }
+  }
+  ,
+  loadSecret(key: string): string | null {
+    try {
+      const p = path.join(repoRoot(), '.rainvibe', 'secrets.json');
+      if (!fs.existsSync(p)) return null;
+      const obj = JSON.parse(fs.readFileSync(p, 'utf8'));
+      return obj[key] ?? null;
+    } catch { return null; }
+  }
+  ,
+  deleteSecret(key: string): boolean {
+    try {
+      const p = path.join(repoRoot(), '.rainvibe', 'secrets.json');
+      if (!fs.existsSync(p)) return true;
+      const obj = JSON.parse(fs.readFileSync(p, 'utf8'));
+      delete obj[key];
+      fs.writeFileSync(p, JSON.stringify(obj, null, 2), 'utf8');
+      return true;
+    } catch { return false; }
+  }
+  ,
   updateKit(name: string, note?: string): boolean {
     try {
       const dir = path.join(repoRoot(), '.rainvibe', 'kits', name);
@@ -427,6 +458,63 @@ contextBridge.exposeInMainWorld('rainvibe', {
         } catch {}
       }
       return out;
+    } catch { return []; }
+  }
+  ,
+  indexSymbols(): number {
+    try {
+      const root = repoRoot();
+      const outPath = path.join(root, '.rainvibe', 'symbols.json');
+      const symbols: Array<{ path: string; line: number; name: string; kind: string }> = [];
+      const ignore = new Set(['node_modules','dist','build','out']);
+      const rx = /(class\s+(\w+))|(function\s+(\w+))|(const\s+(\w+)\s*=\s*\()/;
+      const walk = (p: string, rel: string) => {
+        const entries = fs.readdirSync(p, { withFileTypes: true });
+        for (const e of entries) {
+          if (e.name.startsWith('.')) continue;
+          if (ignore.has(e.name)) continue;
+          const abs = path.join(p, e.name);
+          const r = path.join(rel, e.name).replace(/\\/g,'/');
+          if (e.isDirectory()) { walk(abs, r); continue; }
+          if (!/\.(t|j)sx?$/.test(e.name)) continue;
+          try {
+            const data = fs.readFileSync(abs, 'utf8');
+            const lines = data.split(/\r?\n/);
+            lines.forEach((ln, i) => {
+              const m = rx.exec(ln);
+              if (m) {
+                const name = m[2] || m[4] || m[6] || '';
+                const kind = m[2] ? 'class' : m[4] ? 'function' : 'const';
+                if (name) symbols.push({ path: r, line: i+1, name, kind });
+              }
+            });
+          } catch {}
+        }
+      };
+      walk(root, '');
+      fs.mkdirSync(path.dirname(outPath), { recursive: true });
+      fs.writeFileSync(outPath, JSON.stringify({ ts: Date.now(), symbols }, null, 2), 'utf8');
+      return symbols.length;
+    } catch { return 0; }
+  }
+  ,
+  searchSymbols(term: string): { path: string; line: number; name: string; kind: string }[] {
+    try {
+      const root = repoRoot();
+      const outPath = path.join(root, '.rainvibe', 'symbols.json');
+      if (!fs.existsSync(outPath)) return [];
+      const data = JSON.parse(fs.readFileSync(outPath, 'utf8'));
+      const t = term.toLowerCase();
+      return (data.symbols || []).filter((s: any) => String(s.name || '').toLowerCase().includes(t));
+    } catch { return []; }
+  }
+  ,
+  policyHints(): string[] {
+    try {
+      const p = path.join(repoRoot(), '.rainvibe', 'policy', 'hints.json');
+      if (!fs.existsSync(p)) return [];
+      const arr = JSON.parse(fs.readFileSync(p, 'utf8'));
+      return Array.isArray(arr) ? arr : [];
     } catch { return []; }
   }
   ,
@@ -522,6 +610,59 @@ contextBridge.exposeInMainWorld('rainvibe', {
         return { code: 1, output: 'Failed to execute command' };
       }
     }
+  }
+  ,
+  // Minimal PTY-like API with polling
+  _ptyStore: new Map<string, { proc: any; buffer: string }>(),
+  runPtyStart(cmd: string, cwdRel?: string): string | null {
+    try {
+      const root = repoRoot();
+      const cwd = cwdRel ? path.resolve(root, cwdRel) : root;
+      const parts = process.platform === 'win32' ? ['powershell.exe','-NoLogo','-NoProfile','-Command', cmd] : ['/bin/sh','-lc', cmd];
+      const exe = process.platform === 'win32' ? parts.shift()! : parts.shift()!;
+      const child = spawn(exe, parts, { cwd, stdio: 'pipe' });
+      const id = String(Date.now()) + '-' + Math.random().toString(36).slice(2,8);
+      const store = { proc: child, buffer: '' };
+      child.stdout.on('data', (d: Buffer) => { store.buffer += d.toString('utf8'); });
+      child.stderr.on('data', (d: Buffer) => { store.buffer += d.toString('utf8'); });
+      child.on('close', (code: number) => { store.buffer += `\n[exit ${code}]\n`; });
+      // @ts-ignore
+      this._ptyStore.set(id, store);
+      return id;
+    } catch { return null; }
+  }
+  ,
+  runPtyInput(id: string, text: string): boolean {
+    try {
+      // @ts-ignore
+      const item = this._ptyStore.get(id);
+      if (!item) return false;
+      item.proc.stdin.write(text);
+      return true;
+    } catch { return false; }
+  }
+  ,
+  runPtyPoll(id: string): string {
+    try {
+      // @ts-ignore
+      const item = this._ptyStore.get(id);
+      if (!item) return '';
+      const out = item.buffer;
+      item.buffer = '';
+      return out;
+    } catch { return ''; }
+  }
+  ,
+  runPtyStop(id: string): boolean {
+    try {
+      // @ts-ignore
+      const item = this._ptyStore.get(id);
+      if (!item) return false;
+      try { item.proc.kill(); } catch {}
+      // @ts-ignore
+      this._ptyStore.delete(id);
+      return true;
+    } catch { return false; }
   }
   ,
   deletePath(relPath: string): boolean {

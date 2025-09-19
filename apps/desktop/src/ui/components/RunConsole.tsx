@@ -5,12 +5,36 @@ const RunConsole: React.FC = () => {
   const [cmd, setCmd] = React.useState('echo Hello RainVibe');
   const [out, setOut] = React.useState<string>('');
   const [busy, setBusy] = React.useState(false);
+  const [pty, setPty] = React.useState(false);
+  const [ptyId, setPtyId] = React.useState<string | null>(null);
   const [history, setHistory] = React.useState<string[]>(() => {
     try { return JSON.parse(localStorage.getItem('rainvibe.run.history') || '[]'); } catch { return []; }
   });
   const [hIdx, setHIdx] = React.useState<number>(-1);
   const onRun = async () => {
     setBusy(true);
+    if (pty) {
+      try {
+        const id = (window as any).rainvibe?.runPtyStart?.(cmd);
+        if (id) {
+          setPtyId(id);
+          const start = Date.now();
+          const tick = () => {
+            try {
+              const chunk = (window as any).rainvibe?.runPtyPoll?.(id) || '';
+              if (chunk) setOut((prev) => prev + chunk);
+            } catch {}
+            if (Date.now() - start < 60_000) setTimeout(tick, 250);
+          };
+          tick();
+        }
+      } catch {}
+      setBusy(false);
+      try { (window as any).rainvibe?.appendAudit?.(JSON.stringify({ kind:'run', cmd, ts: Date.now(), pty: true })+'\n'); } catch {}
+      setHistory((prev) => [cmd, ...prev].slice(0, 50));
+      setHIdx(-1);
+      return;
+    }
     let output = '';
     try {
       const res = (window as any).rainvibe?.runShell?.(cmd);
@@ -52,6 +76,9 @@ const RunConsole: React.FC = () => {
   return (
     <div className="h-full flex flex-col text-xs">
       <div className="flex gap-2">
+        <label className="flex items-center gap-2 px-2 py-1 border border-white/15 rounded">
+          <input type="checkbox" checked={pty} onChange={(e) => setPty(e.target.checked)} /> PTY
+        </label>
         <input value={cmd} onChange={(e) => setCmd(e.target.value)} onKeyDown={(e) => {
           if (e.key === 'Enter') { e.preventDefault(); onRun(); }
           if (e.key === 'ArrowUp') {
@@ -79,6 +106,12 @@ const RunConsole: React.FC = () => {
         <button onClick={onSaveOut} className="px-3 py-1 border border-white/15 rounded hover:bg-white/10">Save</button>
       </div>
       <pre className="mt-2 flex-1 overflow-auto border border-white/10 rounded p-2 bg-black text-white">{out}</pre>
+      {ptyId && (
+        <div className="mt-2 flex gap-2">
+          <input placeholder="send input" onKeyDown={(e) => { if (e.key === 'Enter') { const t = (e.target as HTMLInputElement).value + '\n'; (window as any).rainvibe?.runPtyInput?.(ptyId, t); (e.target as HTMLInputElement).value = ''; } }} className="flex-1 px-2 py-1 bg-black text-white border border-white/15 rounded" />
+          <button onClick={() => { if (ptyId) { (window as any).rainvibe?.runPtyStop?.(ptyId); setPtyId(null); } }} className="px-2 py-1 border border-white/15 rounded hover:bg-white/10">Stop</button>
+        </div>
+      )}
     </div>
   );
 };
