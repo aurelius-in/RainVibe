@@ -15,7 +15,9 @@
     "build:main": "tsc -p tsconfig.main.json",
     "package": "electron-builder --config electron-builder.yml",
     "preview": "vite preview --config vite.renderer.config.ts --host 127.0.0.1 --port 5173",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "react": "^18.3.1",
@@ -42,7 +44,10 @@
     "vite-node": "^1.6.0",
     "@vitejs/plugin-react": "^4.3.1",
     "vite-tsconfig-paths": "^4.3.2",
-    "@playwright/test": "^1.48.0"
+    "@playwright/test": "^1.48.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.0.1",
+    "vitest": "^2.1.3"
   }
 }
 

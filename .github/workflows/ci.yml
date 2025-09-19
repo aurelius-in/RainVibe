@@ -37,6 +37,10 @@ jobs:
       - name: Build workspace
         run: pnpm build
 
+      - name: Unit tests (Vitest)
+        working-directory: apps/desktop
+        run: pnpm test
+
       - name: Install Playwright browsers (Linux)
         if: runner.os == 'Linux'
         working-directory: apps/desktop
