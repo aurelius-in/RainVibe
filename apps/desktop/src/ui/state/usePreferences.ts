@@ -29,11 +29,17 @@ export interface Preferences {
   proxyUrl?: string;
   nonStopIntervalSec?: number;
   nonStopAutoPush?: boolean;
+  commitPolicy?: 'per_feature' | 'per_n_changes' | 'time_based' | 'manual';
+  commitEveryNChanges?: number;
+  commitTimeMinutes?: number;
+  pushPolicy?: 'per_n_commits' | 'time_based' | 'manual';
+  pushEveryNCommits?: number;
+  pushTimeMinutes?: number;
 }
 
 const KEY = 'rainvibe.preferences';
 const KEY_FIRST = 'rainvibe.firstRun';
-const DEFAULTS: Preferences = { provider: 'chatgpt', model: 'gpt-4o-mini', offlineOnly: false, apiKey: '', baseUrl: '', ghostText: true, telemetryOptIn: false, minimap: true, fontSize: 14, wordWrap: false, wordWrapColumn: 80, tokenMeter: true, lineNumbers: true, renderWhitespace: false, autosave: false, formatOnSave: false, formatOnSavePerLanguage: { typescript: true, javascript: true, json: true, markdown: true }, multiCursorModifier: 'alt', columnSelection: true, keybindings: {}, aliases: {}, profiles: {}, activeProfile: '', rateLimitPerMin: 60, proxyUrl: '', nonStopIntervalSec: 45, nonStopAutoPush: true };
+const DEFAULTS: Preferences = { provider: 'chatgpt', model: 'gpt-4o-mini', offlineOnly: false, apiKey: '', baseUrl: '', ghostText: true, telemetryOptIn: false, minimap: true, fontSize: 14, wordWrap: false, wordWrapColumn: 80, tokenMeter: true, lineNumbers: true, renderWhitespace: false, autosave: false, formatOnSave: false, formatOnSavePerLanguage: { typescript: true, javascript: true, json: true, markdown: true }, multiCursorModifier: 'alt', columnSelection: true, keybindings: {}, aliases: {}, profiles: {}, activeProfile: '', rateLimitPerMin: 60, proxyUrl: '', nonStopIntervalSec: 45, nonStopAutoPush: true, commitPolicy: 'per_n_changes', commitEveryNChanges: 3, commitTimeMinutes: 30, pushPolicy: 'per_n_commits', pushEveryNCommits: 5, pushTimeMinutes: 30 };
 
 export function usePreferences() {
   const [prefs, setPrefs] = React.useState<Preferences>(() => {

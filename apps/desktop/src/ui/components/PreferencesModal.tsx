@@ -67,7 +67,11 @@ const PreferencesModal: React.FC<Props> = ({ open, onClose }) => {
             </label>
           </div>
           <label className="block">API Key
-            <input type="password" className="mt-1 bg-black border border-white/15 rounded px-2 py-1 w-full" value={(local as any).apiKey || ''} onChange={(e) => setLocal({ ...local, apiKey: e.target.value } as any)} />
+            <div className="flex gap-2">
+              <input type="password" className="mt-1 bg-black border border-white/15 rounded px-2 py-1 w-full" value={(local as any).apiKey || ''} onChange={(e) => setLocal({ ...local, apiKey: e.target.value } as any)} />
+              <button onClick={() => { try { (window as any).rainvibe?.saveSecret?.('apiKey', (local as any).apiKey || ''); alert('Saved'); } catch {} }} className="px-2 py-1 border border-white/15 rounded hover:bg-white/10 text-xs">Save</button>
+              <button onClick={() => { try { const v = (window as any).rainvibe?.loadSecret?.('apiKey'); if (v != null) setLocal({ ...local, apiKey: v } as any); } catch {} }} className="px-2 py-1 border border-white/15 rounded hover:bg-white/10 text-xs">Load</button>
+            </div>
           </label>
           <label className="block">Base URL (optional)
             <input className="mt-1 bg-black border border-white/15 rounded px-2 py-1 w-full" value={(local as any).baseUrl || ''} onChange={(e) => setLocal({ ...local, baseUrl: e.target.value } as any)} />
@@ -147,6 +151,38 @@ const PreferencesModal: React.FC<Props> = ({ open, onClose }) => {
             <input type="checkbox" checked={!!(local as any).nonStopAutoPush} onChange={(e) => setLocal({ ...local, nonStopAutoPush: e.target.checked } as any)} />
             <span>Auto-push to develop</span>
           </label>
+        </div>
+        <div className="mt-3 text-xs opacity-70">Commit & Push Policies</div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <div className="opacity-70 text-xs mb-1">Commit Policy</div>
+            <select className="bg-black border border-white/15 rounded px-2 py-1 w-full" value={(local as any).commitPolicy || 'per_n_changes'} onChange={(e) => setLocal({ ...local, commitPolicy: e.target.value } as any)}>
+              <option value="per_feature">Per feature</option>
+              <option value="per_n_changes">After N changes</option>
+              <option value="time_based">Every T minutes</option>
+              <option value="manual">Manual</option>
+            </select>
+            <label className="block mt-2">N changes
+              <input type="number" min={1} max={20} className="mt-1 bg-black border border-white/15 rounded px-2 py-1 w-full" value={(local as any).commitEveryNChanges ?? 3} onChange={(e) => setLocal({ ...local, commitEveryNChanges: Number(e.target.value) || 3 } as any)} />
+            </label>
+            <label className="block mt-2">T minutes
+              <input type="number" min={5} max={180} className="mt-1 bg-black border border-white/15 rounded px-2 py-1 w-full" value={(local as any).commitTimeMinutes ?? 30} onChange={(e) => setLocal({ ...local, commitTimeMinutes: Number(e.target.value) || 30 } as any)} />
+            </label>
+          </div>
+          <div>
+            <div className="opacity-70 text-xs mb-1">Push Policy</div>
+            <select className="bg-black border border-white/15 rounded px-2 py-1 w-full" value={(local as any).pushPolicy || 'per_n_commits'} onChange={(e) => setLocal({ ...local, pushPolicy: e.target.value } as any)}>
+              <option value="per_n_commits">After N commits</option>
+              <option value="time_based">Every T minutes</option>
+              <option value="manual">Manual</option>
+            </select>
+            <label className="block mt-2">N commits
+              <input type="number" min={1} max={20} className="mt-1 bg-black border border-white/15 rounded px-2 py-1 w-full" value={(local as any).pushEveryNCommits ?? 5} onChange={(e) => setLocal({ ...local, pushEveryNCommits: Number(e.target.value) || 5 } as any)} />
+            </label>
+            <label className="block mt-2">T minutes
+              <input type="number" min={5} max={180} className="mt-1 bg-black border border-white/15 rounded px-2 py-1 w-full" value={(local as any).pushTimeMinutes ?? 30} onChange={(e) => setLocal({ ...local, pushTimeMinutes: Number(e.target.value) || 30 } as any)} />
+            </label>
+          </div>
         </div>
       </div>
     </div>

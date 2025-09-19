@@ -292,6 +292,18 @@ const AssistantPanel: React.FC<Props> = ({ open, audit, diagnostics, onOpenPath,
                 } catch { return <div className="opacity-60 text-xs">No policy files</div>; }
               })()}
             </div>
+            <div className="space-y-1">
+              <div className="opacity-70 text-xs">Hints</div>
+              {(() => {
+                try {
+                  const hints = (window as any).rainvibe?.policyHints?.() || [];
+                  if (!hints.length) return <div className="opacity-60 text-xs">No hints available</div>;
+                  return hints.map((h: string, i: number) => (
+                    <div key={i} className="border border-white/10 rounded px-2 py-1 text-xs">{h}</div>
+                  ));
+                } catch { return <div className="opacity-60 text-xs">No hints available</div>; }
+              })()}
+            </div>
           </div>
         )}
       </div>
