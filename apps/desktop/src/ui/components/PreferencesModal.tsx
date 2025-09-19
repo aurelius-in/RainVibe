@@ -112,6 +112,10 @@ const PreferencesModal: React.FC<Props> = ({ open, onClose }) => {
             <span>Show token meter</span>
           </label>
           <label className="flex items-center gap-2">
+            <input type="checkbox" checked={!!(local as any).enableProfiling} onChange={(e) => setLocal({ ...local, enableProfiling: e.target.checked } as any)} />
+            <span>Enable profiling overlay</span>
+          </label>
+          <label className="flex items-center gap-2">
             <input type="checkbox" checked={!!(local as any).autosave} onChange={(e) => setLocal({ ...local, autosave: e.target.checked } as any)} />
             <span>Autosave buffers</span>
           </label>
