@@ -10,6 +10,8 @@ const WorkspaceTree: React.FC = () => {
   });
   const [entries, setEntries] = React.useState<Entry[]>([]);
   const [menu, setMenu] = React.useState<{ x: number; y: number; entry?: Entry } | null>(null);
+  const [selected, setSelected] = React.useState<Set<string>>(() => new Set());
+  const [drag, setDrag] = React.useState<{ from?: string } | null>(null);
   React.useEffect(() => {
     try { setEntries((window as any).rainvibe?.listDir?.(cwd) ?? []); } catch { setEntries([]); }
   }, [cwd]);
@@ -31,6 +33,18 @@ const WorkspaceTree: React.FC = () => {
   const refresh = () => {
     try { setEntries((window as any).rainvibe?.listDir?.(cwd) ?? []); } catch { setEntries([]); }
   };
+  React.useEffect(() => {
+    const id = setInterval(() => refresh(), 5000);
+    return () => clearInterval(id);
+  }, [cwd]);
+  const toggleSelect = (p: string, additive: boolean) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (!additive) next.clear();
+      if (next.has(p)) next.delete(p); else next.add(p);
+      return next;
+    });
+  };
   return (
     <div className="h-full flex flex-col" onMouseDown={() => setMenu(null)}>
       <div className="flex items-center gap-2 mb-2">
@@ -51,9 +65,19 @@ const WorkspaceTree: React.FC = () => {
           <div
             key={e.path}
             onDoubleClick={() => { if (e.isDir) setCwd(e.path); else open(e.path); }}
-            onClick={() => { setMenu({ x: 0, y: 0, entry: e }); if (!e.isDir) open(e.path); }}
+            onClick={(ev) => { setMenu({ x: 0, y: 0, entry: e }); toggleSelect(e.path, !!(ev.ctrlKey || ev.metaKey)); if (!e.isDir && !(ev.ctrlKey || ev.metaKey)) open(e.path); }}
             onContextMenu={(ev) => { ev.preventDefault(); setMenu({ x: ev.clientX, y: ev.clientY, entry: e }); }}
-            className={`flex items-center gap-2 px-2 py-1 rounded cursor-pointer ${menu?.entry?.path===e.path ? 'bg-white/10' : 'hover:bg-white/10'}`}
+            draggable
+            onDragStart={() => setDrag({ from: e.path })}
+            onDragOver={(ev) => { ev.preventDefault(); }}
+            onDrop={() => {
+              if (drag?.from && drag.from !== e.path) {
+                const to = e.isDir ? (e.path + '/' + drag.from.split('/').pop()) : e.path + '.moved';
+                try { (window as any).rainvibe?.renamePath?.(drag.from, to); refresh(); } catch {}
+              }
+              setDrag(null);
+            }}
+            className={`flex items-center gap-2 px-2 py-1 rounded cursor-pointer ${selected.has(e.path) ? 'bg-white/10' : 'hover:bg-white/10'}`}
             title={e.path}
           >
             <span className="opacity-60">{e.isDir ? '📁' : '📄'}</span>
@@ -71,6 +95,7 @@ const WorkspaceTree: React.FC = () => {
               <button className="block w-full text-left px-3 py-1 hover:bg-white/10" onClick={() => { const to = prompt('Rename to (relative path)', menu.entry!.path); if (to && to !== menu.entry!.path) { try { (window as any).rainvibe?.renamePath?.(menu.entry!.path, to); refresh(); } catch {} } setMenu(null); }}>Rename…</button>
               <button className="block w-full text-left px-3 py-1 hover:bg-white/10" onClick={() => { const ok = confirm(`Delete ${menu.entry!.path}?`); if (ok) { try { (window as any).rainvibe?.deletePath?.(menu.entry!.path); refresh(); } catch {} } setMenu(null); }}>Delete</button>
               <button className="block w-full text-left px-3 py-1 hover:bg-white/10" onClick={() => { try { (window as any).rainvibe?.revealInOS?.(menu.entry!.path); } catch {} setMenu(null); }}>Reveal in OS</button>
+              <button className="block w-full text-left px-3 py-1 hover:bg-white/10" onClick={() => { const paths = Array.from(selected.size ? selected : new Set([menu.entry!.path])); const folder = prompt('Move selected to folder (relative):', ''); if (folder != null) { try { paths.forEach(p => { const to = (folder ? (folder.replace(/\/$/, '') + '/' + p.split('/').pop()) : p); (window as any).rainvibe?.renamePath?.(p, to); }); refresh(); } catch {} } setMenu(null); }}>Move Selected…</button>
             </>
           )}
           <button className="block w-full text-left px-3 py-1 hover:bg-white/10" onClick={() => { refresh(); setMenu(null); }}>Refresh</button>

@@ -18,6 +18,7 @@ import { usePreferences } from './state/usePreferences';
 import FirstRunModal, { shouldShowFirstRun } from './components/FirstRunModal';
 import DiffPatchPreview from './components/DiffPatchPreview';
 import ShortcutsModal from './components/ShortcutsModal';
+import KeybindingsModal from './components/KeybindingsModal';
 
 const TopBar: React.FC<{ modes: string[]; version?: string; onChange: (m: string[]) => void; onOpenBoard: () => void; onToggleAssistant: () => void; }>
   = ({ modes, version, onChange, onOpenBoard, onToggleAssistant }) => {
@@ -82,6 +83,7 @@ const App: React.FC = () => {
   const [diffOriginal, setDiffOriginal] = React.useState('');
   const [diffModified, setDiffModified] = React.useState('');
   const [shortcutsOpen, setShortcutsOpen] = React.useState(false);
+  const [keysOpen, setKeysOpen] = React.useState(false);
   const [caret, setCaret] = React.useState<{ line: number; column: number }>({ line: 1, column: 1 });
   const [diagnostics, setDiagnostics] = React.useState<Array<{ message: string; severity: 'error' | 'warning' | 'info'; startLine: number; startColumn: number; endLine: number; endColumn: number }>>([]);
   const diagCounts = React.useMemo(() => {
@@ -128,7 +130,12 @@ const App: React.FC = () => {
     window.addEventListener('open-path', openPathHandler as any);
     window.addEventListener('rainvibe:diff-file', diffHandler as any);
     window.addEventListener('rainvibe:diff-file-head', diffHeadHandler as any);
-    return () => { window.removeEventListener('open-path', openPathHandler as any); window.removeEventListener('rainvibe:diff-file', diffHandler as any); window.removeEventListener('rainvibe:diff-file-head', diffHeadHandler as any); };
+    const leftHandler = (e: any) => {
+      const name = String(e?.detail || '');
+      if (name === 'workspace' || name === 'search' || name === 'outline') setLeftRail(name as any);
+    };
+    window.addEventListener('rainvibe:left', leftHandler as any);
+    return () => { window.removeEventListener('open-path', openPathHandler as any); window.removeEventListener('rainvibe:diff-file', diffHandler as any); window.removeEventListener('rainvibe:diff-file-head', diffHeadHandler as any); window.removeEventListener('rainvibe:left', leftHandler as any); };
   }, [open, buffers]);
 
   React.useEffect(() => {
@@ -225,6 +232,7 @@ const App: React.FC = () => {
       togglePolicy();
     }});
     registry.register({ id: 'open-preferences', title: 'Open Preferences', run: () => setPrefsOpen(true) });
+    registry.register({ id: 'open-keybindings', title: 'Open Keybindings & Aliases', run: () => setKeysOpen(true) });
     registry.register({ id: 'open-about', title: 'Open About', run: () => setAboutOpen(true) });
     registry.register({ id: 'policy-simulate', title: 'Simulate Policy Check', run: () => {
       // Stub: just create an alert to show where results would surface
@@ -759,6 +767,15 @@ const App: React.FC = () => {
       <AboutModal open={aboutOpen} onClose={() => setAboutOpen(false)} />
       <FirstRunModal open={firstOpen} onClose={() => setFirstOpen(false)} onOpenPreferences={() => setPrefsOpen(true)} />
       <ShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+      <KeybindingsModal open={keysOpen} onClose={() => setKeysOpen(false)} />
+      <DiffPatchPreview
+        open={showDiff}
+        original={diffOriginal}
+        modified={diffModified}
+        language={active.language || 'plaintext'}
+        onApply={() => { try { if (active?.id) update(active.id, diffModified); } catch {} setShowDiff(false); }}
+        onClose={() => setShowDiff(false)}
+      />
     </div>
   );
 };
