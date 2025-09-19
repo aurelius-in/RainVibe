@@ -160,6 +160,32 @@ const AssistantPanel: React.FC<Props> = ({ open, audit, diagnostics, onOpenPath,
         )}
         {tab === 'Changes' && (
           <div className="space-y-2">
+            <div className="border border-white/10 rounded p-2">
+              <div className="flex items-center justify-between mb-1">
+                <div className="opacity-70 text-xs">Conflicts</div>
+                <button onClick={() => setTab('Changes')} className="px-1 py-0.5 border border-white/15 rounded hover:bg-white/10 text-xs">Refresh</button>
+              </div>
+              {(() => {
+                try {
+                  const list = (window as any).rainvibe?.detectConflicts?.() || [];
+                  if (!list.length) return <div className="opacity-60 text-xs">No conflicts detected</div>;
+                  return (
+                    <div className="space-y-1">
+                      {list.map((c:any) => (
+                        <div key={c.file} className="flex items-center justify-between border border-white/10 rounded px-2 py-1 text-xs">
+                          <span><span className="opacity-70 mr-2">{c.lines} marks</span>{c.file}</span>
+                          <span className="flex gap-1">
+                            <button onClick={() => { (window as any).rainvibe?.resolveConflict?.(c.file, 'ours'); alert('Applied ours'); }} className="px-1 py-0.5 border border-white/15 rounded hover:bg-white/10">Ours</button>
+                            <button onClick={() => { (window as any).rainvibe?.resolveConflict?.(c.file, 'theirs'); alert('Applied theirs'); }} className="px-1 py-0.5 border border-white/15 rounded hover:bg-white/10">Theirs</button>
+                            <button onClick={() => { (window as any).rainvibe?.gitAdd?.(c.file); }} className="px-1 py-0.5 border border-white/15 rounded hover:bg-white/10">Mark Resolved</button>
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                } catch { return <div className="opacity-60 text-xs">No conflicts detected</div>; }
+              })()}
+            </div>
             <div className="flex flex-wrap gap-2">
               <button onClick={() => setTab('Changes')} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10">Refresh</button>
               <button onClick={() => (window as any).rainvibe?.gitAdd?.()} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10">Stage All</button>
