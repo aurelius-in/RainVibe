@@ -518,6 +518,27 @@ contextBridge.exposeInMainWorld('rainvibe', {
     } catch { return []; }
   }
   ,
+  readPackageVersion(): string | null {
+    try {
+      const p = path.join(repoRoot(), 'package.json');
+      if (!fs.existsSync(p)) return null;
+      const pkg = JSON.parse(fs.readFileSync(p, 'utf8'));
+      return pkg.version || null;
+    } catch { return null; }
+  }
+  ,
+  checkUpdateLocal(): { current: string | null; latest: string | null; updateAvailable: boolean } {
+    try {
+      const current = (this as any).readPackageVersion?.();
+      const p = path.join(repoRoot(), '.rainvibe', 'latest.json');
+      const latest = fs.existsSync(p) ? (JSON.parse(fs.readFileSync(p, 'utf8')).version || null) : null;
+      const parse = (v: string | null) => (v || '0.0.0').split('.').map((x: any) => parseInt(String(x), 10) || 0);
+      const a = parse(current), b = parse(latest);
+      const update = b[0] > a[0] || (b[0] === a[0] && (b[1] > a[1] || (b[1] === a[1] && b[2] > a[2])));
+      return { current, latest, updateAvailable: !!latest && update };
+    } catch { return { current: null, latest: null, updateAvailable: false }; }
+  }
+  ,
   formatWithPrettier(text: string, filename?: string): string | null {
     try {
       let prettier: any = null;

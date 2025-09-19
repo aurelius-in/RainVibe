@@ -52,6 +52,8 @@ declare global {
       indexSymbols?: () => number;
       searchSymbols?: (term: string) => { path: string; line: number; name: string; kind: string }[];
       policyHints?: () => string[];
+      readPackageVersion?: () => string | null;
+      checkUpdateLocal?: () => { current: string | null; latest: string | null; updateAvailable: boolean };
       runPtyStart?: (cmd: string, cwdRel?: string) => string | null;
       runPtyInput?: (id: string, text: string) => boolean;
       runPtyPoll?: (id: string) => string;

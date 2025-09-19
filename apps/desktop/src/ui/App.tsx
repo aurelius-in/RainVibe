@@ -91,6 +91,7 @@ const App: React.FC = () => {
   const [keysOpen, setKeysOpen] = React.useState(false);
   const [caret, setCaret] = React.useState<{ line: number; column: number }>({ line: 1, column: 1 });
   const { chat } = useAiClient();
+  const nonStopMetaRef = React.useRef<{ lastCommitAt: number; lastPushAt: number; commitsSincePush: number }>({ lastCommitAt: 0, lastPushAt: 0, commitsSincePush: 0 });
   const [diagnostics, setDiagnostics] = React.useState<Array<{ message: string; severity: 'error' | 'warning' | 'info'; startLine: number; startColumn: number; endLine: number; endColumn: number }>>([]);
   const diagCounts = React.useMemo(() => {
     return {
@@ -171,6 +172,26 @@ const App: React.FC = () => {
     try { document.title = `RainVibe — ${active?.path ?? ''}`; } catch {}
     try { (window as any).activePath = active?.path || ''; } catch {}
   }, [active?.path]);
+  // Daily push reminder
+  React.useEffect(() => {
+    const id = setInterval(() => {
+      try {
+        const raw = localStorage.getItem('rainvibe.nonstop.meta') || '{}';
+        const meta = JSON.parse(raw || '{}');
+        const last = meta.lastPushAt || 0;
+        if (Date.now() - last > 24 * 60 * 60 * 1000) {
+          alert('It has been over a day since the last push. Consider pushing your work.');
+        }
+      } catch {}
+    }, 60 * 60 * 1000);
+    return () => clearInterval(id);
+  }, []);
+  React.useEffect(() => {
+    try {
+      const raw = localStorage.getItem('rainvibe.nonstop.meta') || '';
+      if (raw) nonStopMetaRef.current = JSON.parse(raw);
+    } catch {}
+  }, []);
 
   // Non-stop RainVibe mode: autosave/commit/push loop
   React.useEffect(() => {
@@ -184,21 +205,59 @@ const App: React.FC = () => {
             try { (window as any).rainvibe?.writeTextFile?.(b.path, b.content); } catch {}
           }
         });
-        // Commit and push if there are changes
+        // Commit and push according to policy
         const changes = (window as any).rainvibe?.gitStatus?.() || [];
-        if (changes.length > 0) {
+        const now = Date.now();
+        const meta = nonStopMetaRef.current;
+        const commitPolicy = (prefs as any).commitPolicy || 'per_n_changes';
+        const pushPolicy = (prefs as any).pushPolicy || 'per_n_commits';
+        let shouldCommit = false;
+        if (commitPolicy === 'per_feature') {
+          shouldCommit = changes.length > 0;
+        } else if (commitPolicy === 'per_n_changes') {
+          const n = Math.max(1, (prefs as any).commitEveryNChanges ?? 3);
+          shouldCommit = changes.length >= n;
+        } else if (commitPolicy === 'time_based') {
+          const minutes = Math.max(5, (prefs as any).commitTimeMinutes ?? 30);
+          shouldCommit = (now - (meta.lastCommitAt || 0)) >= minutes * 60_000 && changes.length > 0;
+        }
+        if (shouldCommit) {
           try { (window as any).rainvibe?.gitAdd?.(); } catch {}
           const msg = `RainVibe: checkpoint (${changes.length} files)`;
-          try { (window as any).rainvibe?.gitCommit?.(msg); } catch {}
+          try {
+            const ok = (window as any).rainvibe?.gitCommit?.(msg);
+            if (ok) {
+              meta.lastCommitAt = now;
+              meta.commitsSincePush = (meta.commitsSincePush || 0) + 1;
+              try { localStorage.setItem('rainvibe.nonstop.meta', JSON.stringify(meta)); } catch {}
+            }
+          } catch {}
           if ((prefs as any).nonStopAutoPush !== false) {
-            try { (window as any).rainvibe?.gitPush?.('origin', 'develop'); } catch {}
+            let shouldPush = false;
+            if (pushPolicy === 'per_n_commits') {
+              const n = Math.max(1, (prefs as any).pushEveryNCommits ?? 5);
+              shouldPush = (meta.commitsSincePush || 0) >= n;
+            } else if (pushPolicy === 'time_based') {
+              const minutes = Math.max(5, (prefs as any).pushTimeMinutes ?? 30);
+              shouldPush = (now - (meta.lastPushAt || 0)) >= minutes * 60_000;
+            }
+            if (shouldPush) {
+              try {
+                const ok = (window as any).rainvibe?.gitPush?.('origin', 'develop');
+                if (ok) {
+                  meta.lastPushAt = now;
+                  meta.commitsSincePush = 0;
+                  try { localStorage.setItem('rainvibe.nonstop.meta', JSON.stringify(meta)); } catch {}
+                }
+              } catch {}
+            }
           }
         }
         try { (window as any).rainvibe?.appendAudit?.(JSON.stringify({ kind: 'non_stop_tick', ts: Date.now(), changed: changes.length })+'\n'); } catch {}
       } catch {}
     }, period);
     return () => clearInterval(id);
-  }, [activeModes, buffers, (prefs as any).nonStopIntervalSec, (prefs as any).nonStopAutoPush]);
+  }, [activeModes, buffers, (prefs as any).nonStopIntervalSec, (prefs as any).nonStopAutoPush, (prefs as any).commitPolicy, (prefs as any).commitEveryNChanges, (prefs as any).commitTimeMinutes, (prefs as any).pushPolicy, (prefs as any).pushEveryNCommits, (prefs as any).pushTimeMinutes]);
   React.useEffect(() => {
     try { localStorage.setItem('rainvibe.ui.assistantOpen', String(assistantOpen)); } catch {}
   }, [assistantOpen]);
@@ -340,6 +399,13 @@ const App: React.FC = () => {
       } catch {}
     }});
     registry.register({ id: 'open-about', title: 'Open About', run: () => setAboutOpen(true) });
+    registry.register({ id: 'check-updates', title: 'Check for Updates (local)', run: () => {
+      try {
+        const res = (window as any).rainvibe?.checkUpdateLocal?.();
+        if (!res) return alert('No update info');
+        alert(`Current: ${res.current || 'unknown'}\nLatest: ${res.latest || 'unknown'}\nUpdate available: ${res.updateAvailable ? 'Yes' : 'No'}`);
+      } catch { alert('No update info'); }
+    }});
     registry.register({ id: 'policy-simulate', title: 'Simulate Policy Check', run: () => {
       // Stub: just create an alert to show where results would surface
       alert('Policy simulation: all checks passed (stub).');
@@ -387,6 +453,7 @@ const App: React.FC = () => {
     registry.register({ id: 'git-add-all', title: 'Git: Stage All', run: () => { try { (window as any).rainvibe?.gitAdd?.(); } catch {} } });
     registry.register({ id: 'git-add-current', title: 'Git: Stage Current File', run: () => { if (active?.path) { try { (window as any).rainvibe?.gitAdd?.(active.path); } catch {} } } });
     registry.register({ id: 'git-commit', title: 'Git: Commit…', run: () => { const m = prompt('Commit message:'); if (!m) return; try { (window as any).rainvibe?.gitCommit?.(m); } catch {} } });
+    registry.register({ id: 'git-push-now', title: 'Git: Push Now', run: () => { try { (window as any).rainvibe?.gitPush?.('origin', 'develop'); } catch {} } });
     registry.register({ id: 'git-branch-create', title: 'Git: Create Branch…', run: () => { const b = prompt('New branch name:'); if (!b) return; try { (window as any).rainvibe?.gitCheckout?.(b, true); setBranch((window as any).rainvibe?.gitBranch?.() || null); } catch {} } });
     registry.register({ id: 'git-branch-switch', title: 'Git: Switch Branch…', run: () => { const b = prompt('Switch to branch:'); if (!b) return; try { (window as any).rainvibe?.gitCheckout?.(b, false); setBranch((window as any).rainvibe?.gitBranch?.() || null); } catch {} } });
     registry.register({ id: 'git-merge', title: 'Git: Merge…', run: () => { const b = prompt('Merge branch into current:'); if (!b) return; try { (window as any).rainvibe?.gitMerge?.(b); } catch {} } });
