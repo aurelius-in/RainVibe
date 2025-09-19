@@ -518,6 +518,102 @@ contextBridge.exposeInMainWorld('rainvibe', {
     } catch { return []; }
   }
   ,
+  loadPolicyRules(): Array<{ name: string; pattern: string; message?: string }> {
+    try {
+      const p = path.join(repoRoot(), '.rainvibe', 'policy', 'rules.json');
+      if (!fs.existsSync(p)) return [];
+      const arr = JSON.parse(fs.readFileSync(p, 'utf8'));
+      return Array.isArray(arr) ? arr : [];
+    } catch { return []; }
+  }
+  ,
+  policyCheckFiles(files: string[]): { file: string; line: number; message: string }[] {
+    const out: { file: string; line: number; message: string }[] = [];
+    try {
+      const root = repoRoot();
+      const rules = (this as any).loadPolicyRules?.() || [];
+      const defaults = rules.length ? [] : [
+        { name: 'no_select_all', pattern: '(?i)SELECT\s+\*', message: 'Disallow SELECT * in SQL' },
+        { name: 'no_var', pattern: '\\bvar\\b', message: 'Avoid var, use let/const' },
+      ];
+      const regs = (rules.length ? rules : defaults).map((r: any) => ({ re: new RegExp(r.pattern, 'g'), message: r.message || r.name }));
+      for (const rel of files) {
+        const abs = path.join(root, rel);
+        if (!fs.existsSync(abs) || fs.statSync(abs).isDirectory()) continue;
+        let data = '';
+        try { data = fs.readFileSync(abs, 'utf8'); } catch { continue; }
+        const lines = data.split(/\r?\n/);
+        lines.forEach((ln, idx) => {
+          regs.forEach(({ re, message }) => {
+            if (re.test(ln)) out.push({ file: rel, line: idx + 1, message });
+            re.lastIndex = 0;
+          });
+        });
+      }
+    } catch {}
+    return out;
+  }
+  ,
+  policyCheckChanged(): { file: string; line: number; message: string }[] {
+    try {
+      const status = (this as any).gitStatus?.() || [];
+      const files = status.map((s: any) => s.path);
+      return (this as any).policyCheckFiles?.(files) || [];
+    } catch { return []; }
+  }
+  ,
+  detectConflicts(): { file: string; lines: number }[] {
+    try {
+      const root = repoRoot();
+      const status = (this as any).gitStatus?.() || [];
+      const files = status.map((s: any) => s.path);
+      const out: { file: string; lines: number }[] = [];
+      const rx = /^(<<<<<<<|=======|>>>>>>>)/;
+      for (const rel of files) {
+        const abs = path.join(root, rel);
+        try {
+          const data = fs.readFileSync(abs, 'utf8');
+          const count = data.split(/\r?\n/).filter(ln => rx.test(ln)).length;
+          if (count > 0) out.push({ file: rel, lines: count });
+        } catch {}
+      }
+      return out;
+    } catch { return []; }
+  }
+  ,
+  renameSymbol(oldName: string, newName: string): number {
+    try {
+      const root = repoRoot();
+      let count = 0;
+      const rx = new RegExp(`\\b${oldName.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')}\\b`, 'g');
+      const ignore = new Set(['node_modules','dist','build','out']);
+      const exts = new Set(['.ts','.tsx','.js','.jsx']);
+      const walk = (p: string) => {
+        const entries = fs.readdirSync(p, { withFileTypes: true });
+        for (const e of entries) {
+          if (e.name.startsWith('.')) continue;
+          if (ignore.has(e.name)) continue;
+          const abs = path.join(p, e.name);
+          if (e.isDirectory()) { walk(abs); continue; }
+          const ext = path.extname(e.name).toLowerCase();
+          if (!exts.has(ext)) continue;
+          try {
+            const data = fs.readFileSync(abs, 'utf8');
+            if (!rx.test(data)) { rx.lastIndex = 0; continue; }
+            const replaced = data.replace(rx, newName);
+            if (replaced !== data) {
+              fs.writeFileSync(abs, replaced, 'utf8');
+              count++;
+            }
+            rx.lastIndex = 0;
+          } catch {}
+        }
+      };
+      walk(root);
+      return count;
+    } catch { return 0; }
+  }
+  ,
   readPackageVersion(): string | null {
     try {
       const p = path.join(repoRoot(), 'package.json');
@@ -606,6 +702,14 @@ contextBridge.exposeInMainWorld('rainvibe', {
       execSync(`git rebase ${onto}`, { cwd: root, stdio: 'ignore' });
       return true;
     } catch { return false; }
+  }
+  ,
+  gitRebaseContinue(): boolean {
+    try { const root = repoRoot(); execSync('git rebase --continue', { cwd: root, stdio: 'ignore' }); return true; } catch { return false; }
+  }
+  ,
+  gitRebaseAbort(): boolean {
+    try { const root = repoRoot(); execSync('git rebase --abort', { cwd: root, stdio: 'ignore' }); return true; } catch { return false; }
   }
   ,
   gitPush(remote: string = 'origin', branch: string = 'develop'): boolean {

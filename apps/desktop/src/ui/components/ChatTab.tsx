@@ -8,7 +8,7 @@ interface Message { role: 'user' | 'assistant'; content: string }
 const ChatTab: React.FC = () => {
   const [messages, setMessages] = React.useState<Message[]>([]);
   const [input, setInput] = React.useState('');
-  const { chat, stream } = useAiClient();
+  const { chat, stream, callTool } = useAiClient();
   const { prefs } = usePreferences();
   const { active: modes } = useModes();
 
@@ -28,6 +28,11 @@ const ChatTab: React.FC = () => {
     setMessages((m) => [...m, { role: 'user', content: trimmed }]);
     setInput('');
     let slash = await runSlash(trimmed);
+    if (!slash && trimmed.startsWith('/tool ')) {
+      const [, name, ...args] = trimmed.split(/\s+/);
+      const out = await callTool(name || '', args || []);
+      slash = 'Tool: ' + (name || '') + '\n' + out;
+    }
     if (!slash && modes.includes('Bug Fixer')) {
       slash = 'Bug Fixer: analyzing issue and proposing a minimal diff...';
     }

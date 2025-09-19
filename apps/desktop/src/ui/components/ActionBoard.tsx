@@ -43,7 +43,7 @@ const ActionBoard: React.FC<Props> = ({ open, commands, onClose }) => {
     return commands.filter(c => c.title.toLowerCase().includes(lower) || c.id.toLowerCase().includes(lower));
   }, [q, commands]);
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-start justify-center pt-24" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/60 flex items-start justify-center pt-24" onClick={onClose} role="dialog" aria-modal="true" aria-label="Action Board">
       <div className="w-[640px] bg-black border border-white/15 rounded shadow-xl" onClick={(e) => e.stopPropagation()}>
         <input
           autoFocus
@@ -57,6 +57,7 @@ const ActionBoard: React.FC<Props> = ({ open, commands, onClose }) => {
             if (e.key === 'Escape') { e.preventDefault(); onClose(); }
           }}
           placeholder="Type an action..."
+          aria-label="Action search"
           className="w-full px-3 py-2 bg-black text-white outline-none border-b border-white/10"
         />
         <div className="max-h-80 overflow-auto">
@@ -65,6 +66,7 @@ const ActionBoard: React.FC<Props> = ({ open, commands, onClose }) => {
               key={c.id}
               onMouseEnter={() => setSel(idx)}
               onClick={() => { c.run(); onClose(); }}
+              aria-label={`Run ${c.title}`}
               className={`w-full text-left px-3 py-2 ${sel===idx ? 'bg-white/15' : 'hover:bg-white/10'}`}
             >
               <div className="flex items-center justify-between">

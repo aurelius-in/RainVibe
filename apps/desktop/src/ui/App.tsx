@@ -237,6 +237,14 @@ const App: React.FC = () => {
           shouldCommit = (now - (meta.lastCommitAt || 0)) >= minutes * 60_000 && changes.length > 0;
         }
         if (shouldCommit) {
+          // Policy gate: skip commit if violations detected
+          try {
+            const violations = (window as any).rainvibe?.policyCheckChanged?.() || [];
+            if (violations.length) {
+              console.warn('Policy violations detected, skipping commit', violations);
+              return;
+            }
+          } catch {}
           try { (window as any).rainvibe?.gitAdd?.(); } catch {}
           const tpl = (prefs as any).commitTemplate || '{scope}: {summary}\n\n{details}';
           const msg = tpl
@@ -415,6 +423,27 @@ const App: React.FC = () => {
         const promptMsg = `Edit the following code according to the instruction. Return only the edited code.\nInstruction: ${instruction}\nCode:\n${sel}`;
         const reply = await chat([{ role: 'user', content: promptMsg } as any]);
         if (reply && active?.id) update(active.id, (active.content || '').replace(sel, reply));
+      } catch {}
+    }});
+    registry.register({ id: 'ai-rename-symbol', title: 'AI: Rename Symbol…', run: async () => {
+      try {
+        const oldName = prompt('Old symbol name:');
+        if (!oldName) return;
+        const newName = prompt('New symbol name:');
+        if (!newName) return;
+        const n = (window as any).rainvibe?.renameSymbol?.(oldName, newName) || 0;
+        alert(`Renamed in ${n} files`);
+        window.dispatchEvent(new CustomEvent('rainvibe:workspace:refresh'));
+      } catch {}
+    }});
+    registry.register({ id: 'ai-file-edit', title: 'AI: Edit Entire File…', run: async () => {
+      try {
+        const instruction = prompt('Edit instruction for entire file:');
+        if (!instruction) return;
+        const source = active?.content || '';
+        const promptMsg = `You are an expert developer. Rewrite the following file according to the instruction. Return only the full edited file content.\nInstruction: ${instruction}\n\nFILE START\n${source}\nFILE END`;
+        const reply = await chat([{ role: 'user', content: promptMsg } as any]);
+        if (reply && active?.id) update(active.id, reply);
       } catch {}
     }});
     registry.register({ id: 'open-about', title: 'Open About', run: () => setAboutOpen(true) });

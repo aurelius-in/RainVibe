@@ -46,13 +46,13 @@ const SearchPanel: React.FC = () => {
   return (
     <div className="h-full flex flex-col text-xs">
       <div className="flex gap-2 mb-2">
-        <select value={mode} onChange={(e) => setMode(e.target.value as any)} className="px-2 py-1 bg-black text-white border border-white/15 rounded">
+        <select aria-label="Search mode" value={mode} onChange={(e) => setMode(e.target.value as any)} className="px-2 py-1 bg-black text-white border border-white/15 rounded">
           <option value="filename">Filename</option>
           <option value="content">Content</option>
           <option value="index">Index</option>
           <option value="symbols">Symbols</option>
         </select>
-        <input id="search-input" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { onSearch(); if (results[0]) { (window as any).dispatchEvent(new CustomEvent('open-path', { detail: results[0].path })); } } }} className="flex-1 px-2 py-1 bg-black text-white border border-white/15 rounded" placeholder="Search files or content" />
+        <input aria-label="Search input" id="search-input" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { onSearch(); if (results[0]) { (window as any).dispatchEvent(new CustomEvent('open-path', { detail: results[0].path })); } } }} className="flex-1 px-2 py-1 bg-black text-white border border-white/15 rounded" placeholder="Search files or content" />
         <button onClick={onSearch} className="px-2 py-1 border border-white/15 rounded hover:bg-white/10">Search</button>
         <button onClick={() => { try { const n = (window as any).rainvibe?.buildIndex?.(); alert(`Indexed ${n} files`); } catch {} }} className="px-2 py-1 border border-white/15 rounded hover:bg-white/10">Build Index</button>
         <button onClick={() => { try { const n = (window as any).rainvibe?.indexSymbols?.(); alert(`Indexed ${n} symbols`); } catch {} }} className="px-2 py-1 border border-white/15 rounded hover:bg-white/10">Build Symbols</button>
