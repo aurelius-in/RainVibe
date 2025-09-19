@@ -78,6 +78,16 @@ const AssistantPanel: React.FC<Props> = ({ open, audit, diagnostics, onOpenPath,
               <button onClick={() => audit?.onExport('jsonl')} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10">Export JSONL</button>
               <button onClick={() => audit?.onExport('pdf')} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10">Export PDF</button>
               <button onClick={() => { try { (window as any).rainvibe?.clearAudit?.(); } catch {} }} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10">Clear</button>
+              <button onClick={() => {
+                try {
+                  const txt = (window as any).rainvibe?.readTextFile?.('.rainvibe/trails.jsonl') || '';
+                  const hash = (window as any).rainvibe?.sha256Hex?.(txt) || '';
+                  const ts = new Date().toISOString().replace(/[:.]/g, '-');
+                  (window as any).rainvibe?.writeTextFile?.(`.rainvibe/exports/audit-${ts}.sha256.txt`, hash);
+                  (window as any).rainvibe?.revealInOS?.('.rainvibe/exports');
+                  alert('Audit exported with SHA-256: ' + hash.slice(0,16) + '…');
+                } catch {}
+              }} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10">Sign</button>
             </div>
             <div className="space-y-1">
               {(audit?.events ?? []).map(e => (
@@ -110,6 +120,24 @@ const AssistantPanel: React.FC<Props> = ({ open, audit, diagnostics, onOpenPath,
               {['all','error','warning','info'].map(s => (
                 <button key={s} onClick={() => setSeverity(s as any)} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10 text-xs">{s}</button>
               ))}
+              <button onClick={() => {
+                try {
+                  const p = (window as any).activePath || '';
+                  const text = p ? ((window as any).rainvibe?.readTextFile?.(p) || '') : '';
+                  const issues = (window as any).rainvibe?.lintWithEslint?.(text, p || 'file.ts') || [];
+                  alert(issues.map((i:any) => `${i.severity} ${i.line}:${i.column} ${i.message}`).join('\n') || 'No issues');
+                } catch {}
+              }} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10 text-xs">Run Lint</button>
+              <button onClick={() => {
+                try {
+                  const p = (window as any).activePath || '';
+                  const text = p ? ((window as any).rainvibe?.readTextFile?.(p) || '') : '';
+                  const fmt = (window as any).rainvibe?.formatWithPrettier?.(text, p || 'file.ts');
+                  if (fmt != null && p) { (window as any).rainvibe?.writeTextFile?.(p, fmt); alert('Formatted with Prettier'); }
+                  else { alert('Formatter not available'); }
+                } catch {}
+              }} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10 text-xs">Format</button>
+              <button onClick={() => { try { window.dispatchEvent(new CustomEvent('rainvibe:quick-fix')); } catch {} }} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10 text-xs">Quick Fixes</button>
             </div>
             <div className="space-y-1">
               {(diagnostics ?? []).filter(d => severity==='all' || d.severity===severity).map((d, i) => (
@@ -155,6 +183,7 @@ const AssistantPanel: React.FC<Props> = ({ open, audit, diagnostics, onOpenPath,
                           <button onClick={() => (window as any).rainvibe?.gitRestore?.(e.path)} className="px-1 py-0.5 border border-white/15 rounded hover:bg-white/10">Restore</button>
                           <button onClick={() => window.dispatchEvent(new CustomEvent('rainvibe:diff-file', { detail: e.path }))} className="px-1 py-0.5 border border-white/15 rounded hover:bg-white/10">Diff</button>
                           <button onClick={() => { const out = (window as any).rainvibe?.gitBlame?.(e.path, 200); alert(out ? out.slice(0, 2000) : 'No blame'); }} className="px-1 py-0.5 border border-white/15 rounded hover:bg-white/10">Blame</button>
+                          <button onClick={() => window.dispatchEvent(new CustomEvent('rainvibe:diff-hunks', { detail: e.path }))} className="px-1 py-0.5 border border-white/15 rounded hover:bg-white/10">Hunks</button>
                         </div>
                       </div>
                     </div>
@@ -182,19 +211,46 @@ const AssistantPanel: React.FC<Props> = ({ open, audit, diagnostics, onOpenPath,
                 } catch { return null; }
               })()}
             </div>
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <div className="opacity-70 text-xs">Recent commits</div>
+                <button onClick={() => window.dispatchEvent(new CustomEvent('rainvibe:diff-file-head', { detail: (window as any).activePath || '' }))} className="px-1 py-0.5 border border-white/15 rounded hover:bg-white/10 text-xs">Diff HEAD vs Worktree</button>
+              </div>
+              {(() => {
+                try {
+                  const list = (window as any).rainvibe?.gitLog?.(20) || [];
+                  if (!list.length) return <div className="opacity-60 text-xs">No commits</div>;
+                  return list.map((c: any) => (
+                    <button key={c.hash} onClick={() => {
+                      const txt = (window as any).rainvibe?.gitShowCommit?.(c.hash) || '';
+                      alert(txt.slice(0, 4000));
+                    }} className="w-full text-left border border-white/10 rounded px-2 py-1 hover:bg-white/10 text-xs">
+                      <div className="font-mono opacity-70">{c.hash.slice(0,7)} — {new Date(c.date).toLocaleString()}</div>
+                      <div>{c.subject}</div>
+                    </button>
+                  ));
+                } catch { return null; }
+              })()}
+            </div>
           </div>
         )}
         {tab === 'Kits' && (
           <div className="space-y-2">
             <div>
               <button onClick={() => setTab('Kits')} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10">Refresh</button>
+              <button onClick={() => { const name = prompt('Install kit name'); if (name) { const ok = (window as any).rainvibe?.installKit?.(name, `# ${name}\nInstalled at ${new Date().toISOString()}`); if (ok) setTab('Kits'); } }} className="ml-2 px-2 py-0.5 border border-white/15 rounded hover:bg-white/10">Install…</button>
             </div>
             <div className="space-y-1">
               {(() => {
                 try {
                   const kits = (window as any).rainvibe?.listKits?.() || [];
                   if (!kits.length) return <div className="opacity-60 text-xs">No kits installed</div>;
-                  return kits.map((k: string) => <div key={k} className="border border-white/10 rounded px-2 py-1 text-xs">{k}</div>);
+                  return kits.map((k: string) => (
+                    <div key={k} className="border border-white/10 rounded px-2 py-1 text-xs flex items-center justify-between">
+                      <span>{k}</span>
+                      <button onClick={() => { const ok = confirm(`Remove kit ${k}?`); if (ok) { (window as any).rainvibe?.removeKit?.(k); setTab('Kits'); } }} className="px-1 py-0.5 border border-white/15 rounded hover:bg-white/10">Remove</button>
+                    </div>
+                  ));
                 } catch { return <div className="opacity-60 text-xs">No kits installed</div>; }
               })()}
             </div>

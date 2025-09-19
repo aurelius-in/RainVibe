@@ -31,7 +31,10 @@ export function useAiClient() {
       const systemHints: string[] = [];
       if (modes.includes('Policy-Safe')) systemHints.push('Follow organization safety policies and avoid disallowed content.');
       if (modes.includes('Compliance/Audit')) systemHints.push('Respond with traceable, auditable steps and cite file paths.');
-      const enriched = systemHints.length ? ([{ role: 'system', content: systemHints.join(' ') } as AiMessage, ...messages]) : messages;
+      const base = systemHints.length ? ([{ role: 'system', content: systemHints.join(' ') } as AiMessage, ...messages]) : messages;
+      const enriched = modes.includes('Policy-Safe')
+        ? base.map(m => ({ ...m, content: typeof m.content === 'string' ? redactSecrets(m.content) : m.content }))
+        : base;
       try {
         const meta = { provider: prefs.provider, model: prefs.model, modes, ts: Date.now(), kind: 'ai_chat', direction: 'request', chars: enriched.reduce((n, m) => n + (m.content?.length || 0), 0) };
         (window as any).rainvibe?.appendAudit?.(JSON.stringify({ ...meta, messages: enriched.map(m => ({ role: m.role, content: redactSecrets(m.content) })) })+'\n');

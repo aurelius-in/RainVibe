@@ -1,4 +1,17 @@
 import React from 'react';
+
+export function useModes() {
+  const [active, setActive] = React.useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem('rainvibe.modes') || '[]'); } catch { return []; }
+  });
+  React.useEffect(() => {
+    try { localStorage.setItem('rainvibe.modes', JSON.stringify(active)); } catch {}
+  }, [active]);
+  const update = (next: string[]) => setActive(next);
+  return { active, update };
+}
+
+import React from 'react';
 import type { Mode } from '@rainvibe/common';
 
 const STORAGE_KEY = 'rainvibe.modes.active';

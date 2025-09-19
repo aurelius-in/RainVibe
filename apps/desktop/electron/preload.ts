@@ -2,6 +2,7 @@ import { contextBridge, shell } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
 import { execSync } from 'node:child_process';
+import crypto from 'node:crypto';
 
 function safeReadJson(filePath: string): any | null {
   try {
@@ -38,6 +39,23 @@ contextBridge.exposeInMainWorld('rainvibe', {
     const p = path.join(repoRoot(), '.rainvibe', 'org.json');
     return safeReadJson(p);
   },
+  orgMtime(): number | null {
+    try {
+      const p = path.join(repoRoot(), '.rainvibe', 'org.json');
+      if (!fs.existsSync(p)) return null;
+      const stat = fs.statSync(p);
+      return stat.mtimeMs;
+    } catch { return null; }
+  }
+  ,
+  loadPrompt(name: string): string | null {
+    try {
+      const p = path.join(repoRoot(), '.rainvibe', 'prompts', `${name}.md`);
+      if (!fs.existsSync(p)) return null;
+      return fs.readFileSync(p, 'utf8');
+    } catch { return null; }
+  }
+  ,
   policyFiles(): string[] {
     return listPolicyFiles();
   },
@@ -250,12 +268,29 @@ contextBridge.exposeInMainWorld('rainvibe', {
     } catch { return []; }
   }
   ,
+  gitDiff(relPath: string, refA: string = 'HEAD', refB?: string): string | null {
+    try {
+      const root = repoRoot();
+      const spec = refB ? `${refA}..${refB}` : `${refA}`;
+      const out = execSync(`git --no-pager diff ${spec} -- "${relPath}"`, { cwd: root, stdio: ['ignore', 'pipe', 'ignore'] }).toString('utf8');
+      return out;
+    } catch { return null; }
+  }
+  ,
   gitBlame(relPath: string, maxLines: number = 200): string | null {
     try {
       const root = repoRoot();
       const out = execSync(`git blame -w --line-porcelain -- "${relPath}"`, { cwd: root, stdio: ['ignore', 'pipe', 'ignore'] }).toString('utf8');
       const lines = out.split(/\r?\n/).slice(0, maxLines);
       return lines.join('\n');
+    } catch { return null; }
+  }
+  ,
+  gitShowCommit(hash: string): string | null {
+    try {
+      const root = repoRoot();
+      const out = execSync(`git --no-pager show --stat --name-status ${hash}`, { cwd: root, stdio: ['ignore', 'pipe', 'ignore'] }).toString('utf8');
+      return out;
     } catch { return null; }
   }
   ,
@@ -321,6 +356,122 @@ contextBridge.exposeInMainWorld('rainvibe', {
     } catch { return []; }
   }
   ,
+  installKit(name: string, readme?: string): boolean {
+    try {
+      const dir = path.join(repoRoot(), '.rainvibe', 'kits', name);
+      fs.mkdirSync(dir, { recursive: true });
+      if (readme) fs.writeFileSync(path.join(dir, 'README.md'), readme, 'utf8');
+      return true;
+    } catch { return false; }
+  }
+  ,
+  removeKit(name: string): boolean {
+    try {
+      const dir = path.join(repoRoot(), '.rainvibe', 'kits', name);
+      if (fs.existsSync(dir)) fs.rmSync(dir, { recursive: true, force: true });
+      return true;
+    } catch { return false; }
+  }
+  ,
+  updateKit(name: string, note?: string): boolean {
+    try {
+      const dir = path.join(repoRoot(), '.rainvibe', 'kits', name);
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      const p = path.join(dir, 'README.md');
+      const prev = fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : '';
+      const next = (prev ? prev + '\n\n' : '') + (note || `Updated at ${new Date().toISOString()}`);
+      fs.writeFileSync(p, next, 'utf8');
+      return true;
+    } catch { return false; }
+  }
+  ,
+  buildIndex(): number {
+    try {
+      const root = repoRoot();
+      const idxPath = path.join(root, '.rainvibe', 'index.json');
+      const files: Array<{ path: string; size: number }> = [];
+      const ignore = new Set(['node_modules','dist','build','out']);
+      const walk = (p: string, rel: string) => {
+        const entries = fs.readdirSync(p, { withFileTypes: true });
+        for (const e of entries) {
+          if (e.name.startsWith('.')) continue;
+          if (ignore.has(e.name)) continue;
+          const abs = path.join(p, e.name);
+          const r = path.join(rel, e.name).replace(/\\/g,'/');
+          if (e.isDirectory()) { walk(abs, r); continue; }
+          const stat = fs.statSync(abs);
+          if (stat.size > 1024*1024) continue;
+          files.push({ path: r, size: stat.size });
+        }
+      };
+      walk(root, '');
+      fs.mkdirSync(path.dirname(idxPath), { recursive: true });
+      fs.writeFileSync(idxPath, JSON.stringify({ ts: Date.now(), files }, null, 2), 'utf8');
+      return files.length;
+    } catch { return 0; }
+  }
+  ,
+  searchIndex(term: string): { path: string; line: number; preview: string }[] {
+    try {
+      const root = repoRoot();
+      const idxPath = path.join(root, '.rainvibe', 'index.json');
+      if (!fs.existsSync(idxPath)) return [];
+      const idx = JSON.parse(fs.readFileSync(idxPath, 'utf8'));
+      const out: { path: string; line: number; preview: string }[] = [];
+      for (const f of idx.files || []) {
+        const abs = path.join(root, f.path);
+        try {
+          const data = fs.readFileSync(abs, 'utf8');
+          const lines = data.split(/\r?\n/);
+          lines.forEach((ln, i) => { if (ln.toLowerCase().includes(term.toLowerCase())) out.push({ path: f.path, line: i+1, preview: ln.trim().slice(0, 200) }); });
+        } catch {}
+      }
+      return out;
+    } catch { return []; }
+  }
+  ,
+  formatWithPrettier(text: string, filename?: string): string | null {
+    try {
+      let prettier: any = null;
+      try { prettier = require('prettier'); } catch { prettier = null; }
+      if (!prettier) return null;
+      const parser = filename?.endsWith('.ts') || filename?.endsWith('.tsx') ? 'typescript' : filename?.endsWith('.js') || filename?.endsWith('.jsx') ? 'babel' : filename?.endsWith('.json') ? 'json' : filename?.endsWith('.css') ? 'css' : filename?.endsWith('.md') ? 'markdown' : undefined;
+      const options: any = parser ? { parser } : {};
+      return prettier.format(text, options);
+    } catch { return null; }
+  }
+  ,
+  lintWithEslint(text: string, filename: string = 'file.ts'): { message: string; severity: 'error' | 'warning' | 'info'; line: number; column: number }[] {
+    try {
+      let ESLint: any = null;
+      try { ESLint = require('eslint').ESLint; } catch { ESLint = null; }
+      if (!ESLint) throw new Error('eslint not available');
+      const eslint = new ESLint({ useEslintrc: true, cwd: repoRoot() });
+      const results = eslint.lintTextSync ? eslint.lintTextSync(text, { filePath: filename }) : [];
+      const out: { message: string; severity: 'error' | 'warning' | 'info'; line: number; column: number }[] = [];
+      for (const r of results) {
+        for (const m of r.messages || []) {
+          out.push({ message: m.message, severity: m.severity === 2 ? 'error' : m.severity === 1 ? 'warning' : 'info', line: m.line || 1, column: m.column || 1 });
+        }
+      }
+      return out;
+    } catch {
+      // Fallback simple heuristics
+      const lines = text.split(/\r?\n/);
+      const out: { message: string; severity: 'error' | 'warning' | 'info'; line: number; column: number }[] = [];
+      lines.forEach((ln, i) => {
+        if (/\bvar\b/.test(ln)) out.push({ message: 'Avoid var, use let/const', severity: 'warning', line: i+1, column: Math.max(1, ln.indexOf('var')+1) });
+        if (/[^=]=[^=]/.test(ln)) out.push({ message: 'Use strict equality (===)', severity: 'info', line: i+1, column: 1 });
+        if (/\s+$/.test(ln)) out.push({ message: 'Trailing whitespace', severity: 'info', line: i+1, column: ln.length });
+      });
+      return out;
+    }
+  }
+  ,
+  sha256Hex(input: string): string {
+    try { return crypto.createHash('sha256').update(input).digest('hex'); } catch { return ''; }
+  }
+  ,
   renamePath(fromRel: string, toRel: string): boolean {
     try {
       const from = path.resolve(repoRoot(), fromRel);
@@ -330,6 +481,47 @@ contextBridge.exposeInMainWorld('rainvibe', {
       fs.renameSync(from, to);
       return true;
     } catch { return false; }
+  }
+  ,
+  gitMerge(branch: string): boolean {
+    try {
+      const root = repoRoot();
+      execSync(`git merge --no-ff ${branch}`, { cwd: root, stdio: 'ignore' });
+      return true;
+    } catch { return false; }
+  }
+  ,
+  gitRebase(onto: string): boolean {
+    try {
+      const root = repoRoot();
+      execSync(`git rebase ${onto}`, { cwd: root, stdio: 'ignore' });
+      return true;
+    } catch { return false; }
+  }
+  ,
+  gitPush(remote: string = 'origin', branch: string = 'develop'): boolean {
+    try {
+      const root = repoRoot();
+      execSync(`git push ${remote} ${branch}`, { cwd: root, stdio: 'ignore' });
+      return true;
+    } catch { return false; }
+  }
+  ,
+  runShell(cmd: string, cwdRel?: string): { code: number; output: string } {
+    try {
+      const root = repoRoot();
+      const cwd = cwdRel ? path.resolve(root, cwdRel) : root;
+      const out = execSync(cmd, { cwd, stdio: ['ignore', 'pipe', 'pipe'] }).toString('utf8');
+      return { code: 0, output: out };
+    } catch (e: any) {
+      try {
+        const output = (e?.stdout?.toString?.('utf8') || '') + (e?.stderr?.toString?.('utf8') || e?.message || '');
+        const code = typeof e?.status === 'number' ? e.status : 1;
+        return { code, output };
+      } catch {
+        return { code: 1, output: 'Failed to execute command' };
+      }
+    }
   }
   ,
   deletePath(relPath: string): boolean {

@@ -3,7 +3,7 @@ import { useBuffers } from '../state/useBuffers';
 
 const SearchPanel: React.FC = () => {
   const [q, setQ] = React.useState('');
-  const [mode, setMode] = React.useState<'filename' | 'content'>('filename');
+  const [mode, setMode] = React.useState<'filename' | 'content' | 'index'>('filename');
   const [results, setResults] = React.useState<{ path: string; line?: number; preview?: string }[]>([]);
   const { open } = useBuffers();
   React.useEffect(() => {
@@ -22,8 +22,11 @@ const SearchPanel: React.FC = () => {
         const entries = ((window as any).rainvibe?.listDir?.() ?? []) as Array<{ path: string; name: string; isDir: boolean }>;
         const hits = entries.filter(e => e.name.toLowerCase().includes(q.toLowerCase())).map(e => ({ path: e.path }));
         setResults(hits);
-      } else {
+      } else if (mode === 'content') {
         const hits = ((window as any).rainvibe?.searchText?.(q) ?? []) as Array<{ path: string; line: number; preview: string }>;
+        setResults(hits);
+      } else {
+        const hits = ((window as any).rainvibe?.searchIndex?.(q) ?? []) as Array<{ path: string; line: number; preview: string }>;
         setResults(hits);
       }
     } catch { setResults([]); }
@@ -43,9 +46,11 @@ const SearchPanel: React.FC = () => {
         <select value={mode} onChange={(e) => setMode(e.target.value as any)} className="px-2 py-1 bg-black text-white border border-white/15 rounded">
           <option value="filename">Filename</option>
           <option value="content">Content</option>
+          <option value="index">Index</option>
         </select>
         <input id="search-input" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { onSearch(); if (results[0]) { (window as any).dispatchEvent(new CustomEvent('open-path', { detail: results[0].path })); } } }} className="flex-1 px-2 py-1 bg-black text-white border border-white/15 rounded" placeholder="Search files or content" />
         <button onClick={onSearch} className="px-2 py-1 border border-white/15 rounded hover:bg-white/10">Search</button>
+        <button onClick={() => { try { const n = (window as any).rainvibe?.buildIndex?.(); alert(`Indexed ${n} files`); } catch {} }} className="px-2 py-1 border border-white/15 rounded hover:bg-white/10">Build Index</button>
       </div>
       <div className="space-y-1 overflow-auto">
         {results.map(r => (

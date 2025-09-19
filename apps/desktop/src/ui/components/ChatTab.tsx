@@ -52,15 +52,18 @@ const ChatTab: React.FC = () => {
           const base = m.filter((x, i) => i !== m.length - 1 || x.role !== 'assistant');
           return [...base, { role: 'assistant', content: acc } as any];
         });
+        try { localStorage.setItem('rainvibe.chat.last', acc); } catch {}
       }
       if (!acc) {
         const reply = await chat([{ role: 'user', content: trimmed } as any]);
         acc = reply;
         setMessages((m) => [...m, { role: 'assistant', content: acc }]);
+        try { localStorage.setItem('rainvibe.chat.last', acc); } catch {}
       }
     } catch {
       const reply = await chat([{ role: 'user', content: trimmed } as any]);
       setMessages((m) => [...m, { role: 'assistant', content: reply }]);
+      try { localStorage.setItem('rainvibe.chat.last', reply); } catch {}
     }
   };
 
