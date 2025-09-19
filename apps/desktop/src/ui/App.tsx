@@ -37,7 +37,7 @@ const TopBar: React.FC<{ modes: string[]; version?: string; onChange: (m: string
   );
 };
 
-const StatusBar: React.FC<{ modes: string[]; policyOn: boolean; policyCount: number; auditCount: number; changesCount: number; dirtyCount?: number; caret?: { line: number; column: number }; language?: string; model: string; provider: string; branch?: string | null; offline: boolean; tokensPct: number; tokenMeter?: boolean; onClickPolicy?: () => void; onClickAudit?: () => void; onClickModel?: () => void; onClickChanges?: () => void; onClickTokens?: () => void; onClickBranch?: () => void; onClickEncoding?: () => void }>= ({ modes, policyOn, policyCount, auditCount, changesCount, dirtyCount, caret, language, model, provider, branch, offline, tokensPct, tokenMeter, onClickPolicy, onClickAudit, onClickModel, onClickChanges, onClickTokens, onClickBranch, onClickEncoding }) => {
+const StatusBar: React.FC<{ modes: string[]; policyOn: boolean; policyCount: number; auditCount: number; changesCount: number; dirtyCount?: number; caret?: { line: number; column: number }; language?: string; model: string; provider: string; branch?: string | null; offline: boolean; tokensPct: number; tokenMeter?: boolean; diagCounts?: { error: number; warning: number; info: number }; onClickPolicy?: () => void; onClickAudit?: () => void; onClickModel?: () => void; onClickChanges?: () => void; onClickTokens?: () => void; onClickBranch?: () => void; onClickEncoding?: () => void }>= ({ modes, policyOn, policyCount, auditCount, changesCount, dirtyCount, caret, language, model, provider, branch, offline, tokensPct, tokenMeter, diagCounts, onClickPolicy, onClickAudit, onClickModel, onClickChanges, onClickTokens, onClickBranch, onClickEncoding }) => {
   return (
     <div className="h-6 text-xs px-3 flex items-center gap-4 border-t border-white/10 bg-black text-white/80">
       <button onClick={onClickModel} className="underline-offset-2 hover:underline">model: {model}</button>
@@ -48,6 +48,7 @@ const StatusBar: React.FC<{ modes: string[]; policyOn: boolean; policyCount: num
       <button onClick={onClickAudit} className="underline-offset-2 hover:underline">audit: {auditCount}</button>
       <button onClick={onClickChanges} className="underline-offset-2 hover:underline">changes: {changesCount}</button>
       {typeof dirtyCount === 'number' && <span>dirty: {dirtyCount}</span>}
+      {diagCounts ? <span>diag: {diagCounts.error}/{diagCounts.warning}/{diagCounts.info}</span> : null}
       {caret && <span>{language ? `${language} — ` : ''}{branch ? `${branch} — ` : ''}{caret.line}:{caret.column}</span>}
       <button onClick={onClickEncoding} className="underline-offset-2 hover:underline">UTF-8 LF</button>
       <span>{`ln:${counts?.lines ?? 0} wd:${counts?.words ?? 0}`}</span>
@@ -61,7 +62,7 @@ const StatusBar: React.FC<{ modes: string[]; policyOn: boolean; policyCount: num
 };
 
 const App: React.FC = () => {
-  const { buffers, activeId, setActiveId, update, save, newBuffer, open, closeOthers, closeAll, close, renameBuffer, closeLeftOf, closeRightOf, reopenClosed, setLanguageFor } = useBuffers();
+  const { buffers, activeId, setActiveId, update, save, newBuffer, open, closeOthers, closeAll, close, renameBuffer, closeLeftOf, closeRightOf, reopenClosed, setLanguageFor, undo, redo } = useBuffers();
   const active = buffers.find(b => b.id === activeId) ?? buffers[0];
   const { active: activeModes, update: setModes } = useModes();
   const { status: policy, toggle: togglePolicy } = usePolicy();
@@ -74,7 +75,7 @@ const App: React.FC = () => {
   const [prefsOpen, setPrefsOpen] = React.useState(false);
   const [aboutOpen, setAboutOpen] = React.useState(false);
   const [firstOpen, setFirstOpen] = React.useState(() => shouldShowFirstRun());
-  const [leftRail, setLeftRail] = React.useState<'workspace' | 'search'>(() => {
+  const [leftRail, setLeftRail] = React.useState<'workspace' | 'search' | 'outline'>(() => {
     try { return (localStorage.getItem('rainvibe.ui.leftRail') as any) || 'workspace'; } catch { return 'workspace'; }
   });
   const [showDiff, setShowDiff] = React.useState(false);
@@ -83,6 +84,13 @@ const App: React.FC = () => {
   const [shortcutsOpen, setShortcutsOpen] = React.useState(false);
   const [caret, setCaret] = React.useState<{ line: number; column: number }>({ line: 1, column: 1 });
   const [diagnostics, setDiagnostics] = React.useState<Array<{ message: string; severity: 'error' | 'warning' | 'info'; startLine: number; startColumn: number; endLine: number; endColumn: number }>>([]);
+  const diagCounts = React.useMemo(() => {
+    return {
+      error: diagnostics.filter(d => d.severity === 'error').length,
+      warning: diagnostics.filter(d => d.severity === 'warning').length,
+      info: diagnostics.filter(d => d.severity === 'info').length,
+    };
+  }, [diagnostics]);
   const [diagnosticsVisible, setDiagnosticsVisible] = React.useState<boolean>(() => {
     try { return localStorage.getItem('rainvibe.ui.diagnosticsVisible') !== 'false'; } catch { return true; }
   });
@@ -94,9 +102,21 @@ const App: React.FC = () => {
       const p = String(e?.detail || '');
       if (p) open(p);
     };
+    const diffHandler = (e: any) => {
+      const p = String(e?.detail || '');
+      if (!p) return;
+      try {
+        const txt = (window as any).rainvibe?.readTextFile?.(p) || '';
+        const buf = buffers.find(b => b.path === p);
+        setDiffOriginal(buf?.savedContent ?? txt);
+        setDiffModified(buf?.content ?? txt);
+        setShowDiff(true);
+      } catch {}
+    };
     window.addEventListener('open-path', openPathHandler as any);
-    return () => { window.removeEventListener('open-path', openPathHandler as any); };
-  }, [open]);
+    window.addEventListener('rainvibe:diff-file', diffHandler as any);
+    return () => { window.removeEventListener('open-path', openPathHandler as any); window.removeEventListener('rainvibe:diff-file', diffHandler as any); };
+  }, [open, buffers]);
 
   React.useEffect(() => {
     try { document.title = `RainVibe — ${active?.path ?? ''}`; } catch {}
@@ -462,10 +482,9 @@ const App: React.FC = () => {
       if (meta && e.key.toLowerCase() === 'k') { setBoardOpen(true); e.preventDefault(); }
       if (meta && e.key === ']') { const idx = buffers.findIndex(b => b.id === activeId); const next = buffers[(idx + 1) % buffers.length]; if (next) setActiveId(next.id); e.preventDefault(); }
       if (meta && e.key === '[') { const idx = buffers.findIndex(b => b.id === activeId); const prev = buffers[(idx - 1 + buffers.length) % buffers.length]; if (prev) setActiveId(prev.id); e.preventDefault(); }
-      if (meta && (!e.shiftKey) && e.key.toLowerCase() === 'p') { setBoardOpen(true); e.preventDefault(); }
-      if (meta && e.shiftKey && e.key.toLowerCase() === 'p') { setBoardOpen(true); e.preventDefault(); }
       if (meta && e.key.toLowerCase() === 's') { save(activeId); e.preventDefault(); }
-      if (meta && e.shiftKey && e.key.toLowerCase() === 's') { try { buffers.forEach(b => { (window as any).rainvibe?.writeTextFile?.(b.path, b.content); }); } catch {}; e.preventDefault(); }
+      if (meta && e.key.toLowerCase() === 'z') { registry.get('undo-buffers')?.run(); e.preventDefault(); }
+      if (meta && e.key.toLowerCase() === 'y') { registry.get('redo-buffers')?.run(); e.preventDefault(); }
       if (meta && e.key.toLowerCase() === 'w') { // Close current
         if (e.shiftKey) { // Close others
           if (activeId) closeOthers(activeId);
@@ -498,7 +517,7 @@ const App: React.FC = () => {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [setModes]);
+  }, [setModes, buffers, activeId]);
 
   return (
     <div className="h-full w-full flex flex-col bg-black text-white">
@@ -515,8 +534,33 @@ const App: React.FC = () => {
           <div className="flex gap-2 mb-2 text-xs">
             <button onClick={() => { setLeftRail('workspace'); try { localStorage.setItem('rainvibe.ui.leftRail', 'workspace'); } catch {} }} className={`px-2 py-0.5 border border-white/15 rounded ${leftRail==='workspace' ? 'bg-white/10' : 'hover:bg-white/10'}`}>Workspace</button>
             <button onClick={() => { setLeftRail('search'); try { localStorage.setItem('rainvibe.ui.leftRail', 'search'); } catch {} }} className={`px-2 py-0.5 border border-white/15 rounded ${leftRail==='search' ? 'bg-white/10' : 'hover:bg-white/10'}`}>Search</button>
+            <button onClick={() => { setLeftRail('outline'); try { localStorage.setItem('rainvibe.ui.leftRail', 'outline'); } catch {} }} className={`px-2 py-0.5 border border-white/15 rounded ${leftRail==='outline' ? 'bg-white/10' : 'hover:bg-white/10'}`}>Outline</button>
           </div>
-          {leftRail === 'workspace' ? <WorkspaceTree /> : <SearchPanel />}
+          {leftRail === 'workspace' ? <WorkspaceTree /> : leftRail === 'search' ? <SearchPanel /> : (
+            (() => {
+              const src = active?.content || '';
+              const lines = src.split('\n');
+              const items: Array<{ line: number; text: string }> = [];
+              const rx = /(class\s+\w+|function\s+\w+|const\s+\w+\s*=\s*\(|export\s+(?:default\s+)?class|export\s+function\s+\w+)/;
+              lines.forEach((ln, i) => { if (rx.test(ln)) items.push({ line: i+1, text: ln.trim().slice(0, 120) }); });
+              return (
+                <div className="h-full">
+                  <div className="h-full flex flex-col text-xs">
+                    <div className="opacity-70 mb-2">Outline</div>
+                    <div className="space-y-1 overflow-auto">
+                      {items.map((o, idx) => (
+                        <button key={idx} onClick={() => window.dispatchEvent(new CustomEvent('rainvibe:goto', { detail: { line: o.line, col: 1 } } as any))} className="w-full text-left px-2 py-1 border border-white/10 rounded hover:bg-white/10">
+                          <span className="opacity-60 mr-2">{o.line}</span>
+                          <span>{o.text}</span>
+                        </button>
+                      ))}
+                      {items.length === 0 && <div className="opacity-60">No symbols</div>}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()
+          )}
         </aside>
         <main className="p-0">
           <div className="h-full w-full bg-black">
@@ -565,8 +609,11 @@ const App: React.FC = () => {
               minimap={prefs.minimap}
               fontSize={prefs.fontSize}
               wordWrap={!!prefs.wordWrap}
+              wordWrapColumn={prefs.wordWrapColumn}
               lineNumbers={!!prefs.lineNumbers}
               renderWhitespace={!!prefs.renderWhitespace}
+              multiCursorModifier={(prefs as any).multiCursorModifier}
+              columnSelection={(prefs as any).columnSelection}
               onReady={({ revealPosition, trigger }) => {
                 registry.register({ id: 'go-to-line', title: 'Go to Line…', run: () => {
                   const v = prompt('Line:Column');
@@ -663,6 +710,7 @@ const App: React.FC = () => {
         offline={!!prefs.offlineOnly}
         tokensPct={tokensPct}
         tokenMeter={prefs.tokenMeter}
+        diagCounts={diagCounts}
         caret={caret}
         language={active.language}
         onClickPolicy={() => window.dispatchEvent(new CustomEvent('rainvibe:assistantTab', { detail: 'Guardrails' }))}

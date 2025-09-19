@@ -30,6 +30,14 @@ const RunConsole: React.FC = () => {
       (window as any).rainvibe?.revealInOS?.('.rainvibe/exports');
     } catch {}
   };
+  React.useEffect(() => {
+    const handler = (e: any) => {
+      const name = String(e?.detail || '');
+      if (name) setCmd(`npm run ${name}`);
+    };
+    window.addEventListener('rainvibe:run-script', handler as any);
+    return () => window.removeEventListener('rainvibe:run-script', handler as any);
+  }, []);
   return (
     <div className="h-full flex flex-col text-xs">
       <div className="flex gap-2">

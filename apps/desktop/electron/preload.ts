@@ -82,6 +82,17 @@ contextBridge.exposeInMainWorld('rainvibe', {
     }
   }
   ,
+  readPackageScripts(): string[] {
+    try {
+      const pkgPath = path.join(repoRoot(), 'package.json');
+      if (!fs.existsSync(pkgPath)) return [];
+      const raw = fs.readFileSync(pkgPath, 'utf8');
+      const json = JSON.parse(raw);
+      const scripts = json?.scripts || {};
+      return Object.keys(scripts);
+    } catch { return []; }
+  }
+  ,
   searchText(term: string, dir?: string): { path: string; line: number; preview: string }[] {
     try {
       const base = dir ? path.resolve(repoRoot(), dir) : repoRoot();
@@ -174,12 +185,69 @@ contextBridge.exposeInMainWorld('rainvibe', {
     } catch { return false; }
   }
   ,
+  gitStashList(): { name: string; message: string }[] {
+    try {
+      const root = repoRoot();
+      const out = execSync('git stash list --pretty=%gd:%s', { cwd: root, stdio: ['ignore', 'pipe', 'ignore'] }).toString('utf8');
+      return out.split(/\r?\n/).filter(Boolean).map(line => {
+        const idx = line.indexOf(':');
+        const name = line.slice(0, idx);
+        const message = line.slice(idx + 1).trim();
+        return { name, message };
+      });
+    } catch { return []; }
+  }
+  ,
+  gitStashApply(name: string): boolean {
+    try {
+      const root = repoRoot();
+      execSync(`git stash apply ${name}`, { cwd: root, stdio: 'ignore' });
+      return true;
+    } catch { return false; }
+  }
+  ,
+  gitStashDrop(name: string): boolean {
+    try {
+      const root = repoRoot();
+      execSync(`git stash drop ${name}`, { cwd: root, stdio: 'ignore' });
+      return true;
+    } catch { return false; }
+  }
+  ,
+  gitInit(): boolean {
+    try {
+      const root = repoRoot();
+      execSync('git init', { cwd: root, stdio: 'ignore' });
+      return true;
+    } catch { return false; }
+  }
+  ,
   gitRestore(relPath: string): boolean {
     try {
       const root = repoRoot();
       execSync(`git restore -- "${relPath}"`, { cwd: root, stdio: 'ignore' });
       return true;
     } catch { return false; }
+  }
+  ,
+  gitShowFile(relPath: string, ref: string = 'HEAD'): string | null {
+    try {
+      const root = repoRoot();
+      const out = execSync(`git show ${ref}:${relPath.replace(/\\/g, '/')}`, { cwd: root, stdio: ['ignore', 'pipe', 'ignore'] }).toString('utf8');
+      return out;
+    } catch { return null; }
+  }
+  ,
+  gitLog(limit: number = 20): { hash: string; author: string; date: string; subject: string }[] {
+    try {
+      const root = repoRoot();
+      const fmt = '%H|%an|%ad|%s';
+      const out = execSync(`git log -n ${limit} --date=iso --pretty=format:${fmt}`, { cwd: root, stdio: ['ignore', 'pipe', 'ignore'] }).toString('utf8');
+      return out.split(/\r?\n/).filter(Boolean).map(line => {
+        const [hash, author, date, subject] = line.split('|');
+        return { hash, author, date, subject };
+      });
+    } catch { return []; }
   }
   ,
   gitBranch(): string | null {

@@ -14,7 +14,13 @@ declare global {
       gitCommit?: (message: string) => boolean;
       gitCheckout?: (branch: string, create?: boolean) => boolean;
       gitStash?: (message?: string) => boolean;
+      gitStashList?: () => { name: string; message: string }[];
+      gitStashApply?: (name: string) => boolean;
+      gitStashDrop?: (name: string) => boolean;
+      gitInit?: () => boolean;
       gitRestore?: (relPath: string) => boolean;
+      gitShowFile?: (relPath: string, ref?: string) => string | null;
+      gitLog?: (limit?: number) => { hash: string; author: string; date: string; subject: string }[];
       gitBranch?: () => string | null;
       appendAudit?: (line: string) => boolean;
       clearAudit?: () => boolean;
@@ -24,6 +30,7 @@ declare global {
       mkdir?: (relPath: string) => boolean;
       renamePath?: (fromRel: string, toRel: string) => boolean;
       deletePath?: (relPath: string) => boolean;
+      readPackageScripts?: () => string[];
       listKits?: () => string[];
     };
   }

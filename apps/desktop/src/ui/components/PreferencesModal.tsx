@@ -76,6 +76,16 @@ const PreferencesModal: React.FC<Props> = ({ open, onClose }) => {
           <label className="block">Wrap column
             <input type="number" min={20} max={200} className="mt-1 bg-black border border-white/15 rounded px-2 py-1 w-full" value={(local as any).wordWrapColumn ?? 80} onChange={(e) => setLocal({ ...local, wordWrapColumn: Number(e.target.value) || 80 } as any)} />
           </label>
+          <label className="block">Multi-cursor modifier
+            <select className="mt-1 bg-black border border-white/15 rounded px-2 py-1 w-full" value={(local as any).multiCursorModifier ?? 'alt'} onChange={(e) => setLocal({ ...local, multiCursorModifier: e.target.value } as any)}>
+              <option value="alt">Alt</option>
+              <option value="ctrlCmd">Ctrl/Cmd</option>
+            </select>
+          </label>
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={!!(local as any).columnSelection} onChange={(e) => setLocal({ ...local, columnSelection: e.target.checked } as any)} />
+            <span>Enable column selection</span>
+          </label>
         </div>
         <div className="mt-4 flex justify-end gap-2">
           <button onClick={onClose} className="px-3 py-1 border border-white/15 rounded hover:bg-white/10">Cancel</button>

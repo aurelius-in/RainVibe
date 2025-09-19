@@ -8,6 +8,11 @@ export interface Buffer {
   savedContent?: string;
 }
 
+type BufferAction =
+  | { kind: 'new'; id: string }
+  | { kind: 'close'; buffer: Buffer; wasActive: boolean }
+  | { kind: 'rename'; fromId: string; toId: string; fromPath: string; toPath: string; fromLanguage: string; toLanguage: string };
+
 export function useBuffers() {
   const [buffers, setBuffers] = React.useState<Buffer[]>(() => {
     try {
@@ -22,6 +27,8 @@ export function useBuffers() {
     try { return localStorage.getItem('rainvibe.buffers.active') || 'welcome'; } catch { return 'welcome'; }
   });
   const [closedStack, setClosedStack] = React.useState<Buffer[]>([]);
+  const [history, setHistory] = React.useState<BufferAction[]>([]);
+  const [redoStack, setRedoStack] = React.useState<BufferAction[]>([]);
 
   React.useEffect(() => {
     try { localStorage.setItem('rainvibe.buffers', JSON.stringify(buffers)); } catch {}
@@ -46,6 +53,8 @@ export function useBuffers() {
       });
       setActiveId(id);
       pushRecent(relPath);
+      setHistory(prev => [...prev, { kind: 'new', id }]);
+      setRedoStack([]);
     } catch {}
   };
 
@@ -75,12 +84,18 @@ export function useBuffers() {
       const next = buffers.find(b => b.id !== id);
       if (next) setActiveId(next.id);
     }
+    if (buf) {
+      setHistory(prev => [...prev, { kind: 'close', buffer: buf, wasActive: activeId === id }]);
+      setRedoStack([]);
+    }
   };
 
   const newBuffer = (name: string = `untitled-${Date.now()}.txt`) => {
     const id = name;
     setBuffers(prev => [...prev, { id, path: name, language: guessLang(name), content: '', savedContent: '' }]);
     setActiveId(id);
+    setHistory(prev => [...prev, { kind: 'new', id }]);
+    setRedoStack([]);
   };
 
   const renameBuffer = (oldId: string, newPath: string) => {
@@ -90,10 +105,58 @@ export function useBuffers() {
       return { ...b, id: newPath, path: newPath, language: nextLang };
     }));
     if (activeId === oldId) setActiveId(newPath);
+    const buf = buffers.find(b => b.id === oldId);
+    if (buf) {
+      setHistory(prev => [...prev, { kind: 'rename', fromId: oldId, toId: newPath, fromPath: buf.path, toPath: newPath, fromLanguage: buf.language, toLanguage: guessLang(newPath) }]);
+      setRedoStack([]);
+    }
   };
 
   const setLanguageFor = (id: string, language: string) => {
     setBuffers(prev => prev.map(b => b.id === id ? { ...b, language } : b));
+  };
+
+  const undo = () => {
+    const last = history[history.length - 1];
+    if (!last) return;
+    setHistory(prev => prev.slice(0, prev.length - 1));
+    if (last.kind === 'new') {
+      // Undo new: close it
+      setBuffers(prev => prev.filter(b => b.id !== last.id));
+      setRedoStack(prev => [{ kind: 'new', id: last.id }, ...prev]);
+      if (activeId === last.id) {
+        const next = buffers.find(b => b.id !== last.id);
+        if (next) setActiveId(next.id);
+      }
+    } else if (last.kind === 'close') {
+      // Undo close: reopen buffer
+      setBuffers(prev => [...prev, last.buffer]);
+      if (last.wasActive) setActiveId(last.buffer.id);
+      setRedoStack(prev => [{ kind: 'close', buffer: last.buffer, wasActive: last.wasActive }, ...prev]);
+    } else if (last.kind === 'rename') {
+      // Undo rename: revert to from
+      setBuffers(prev => prev.map(b => b.id === last.toId ? { ...b, id: last.fromId, path: last.fromPath, language: last.fromLanguage } : b));
+      if (activeId === last.toId) setActiveId(last.fromId);
+      setRedoStack(prev => [{ kind: 'rename', fromId: last.toId, toId: last.fromId, fromPath: last.toPath, toPath: last.fromPath, fromLanguage: last.toLanguage, toLanguage: last.fromLanguage }, ...prev]);
+    }
+  };
+
+  const redo = () => {
+    const next = redoStack[0];
+    if (!next) return;
+    setRedoStack(prev => prev.slice(1));
+    if (next.kind === 'new') {
+      setBuffers(prev => prev.find(b => b.id === next.id) ? prev : [...prev, { id: next.id, path: next.id, language: guessLang(next.id), content: '', savedContent: '' }]);
+      setActiveId(next.id);
+      setHistory(prev => [...prev, next]);
+    } else if (next.kind === 'close') {
+      setBuffers(prev => prev.filter(b => b.id !== next.buffer.id));
+      setHistory(prev => [...prev, next]);
+    } else if (next.kind === 'rename') {
+      setBuffers(prev => prev.map(b => b.id === next.fromId ? { ...b, id: next.toId, path: next.toPath, language: next.toLanguage } : b));
+      if (activeId === next.fromId) setActiveId(next.toId);
+      setHistory(prev => [...prev, next]);
+    }
   };
 
   const closeOthers = (id: string) => {
@@ -132,7 +195,7 @@ export function useBuffers() {
 
   const isDirty = (b: Buffer) => b.content !== (b.savedContent ?? '');
 
-  return { buffers, activeId, setActiveId, update, open, save, close, newBuffer, closeOthers, closeAll, isDirty, renameBuffer, closeLeftOf, closeRightOf, reopenClosed, setLanguageFor };
+  return { buffers, activeId, setActiveId, update, open, save, close, newBuffer, closeOthers, closeAll, isDirty, renameBuffer, closeLeftOf, closeRightOf, reopenClosed, setLanguageFor, undo, redo };
 }
 
 function guessLang(p: string): string {
