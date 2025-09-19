@@ -13,7 +13,9 @@
     "build": "rimraf dist && run-s build:renderer build:main",
     "build:renderer": "vite build --config vite.renderer.config.ts",
     "build:main": "tsc -p tsconfig.main.json",
-    "package": "electron-builder --config electron-builder.yml"
+    "package": "electron-builder --config electron-builder.yml",
+    "preview": "vite preview --config vite.renderer.config.ts --host 127.0.0.1 --port 5173",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "react": "^18.3.1",
@@ -39,7 +41,8 @@
     "vite": "^5.4.1",
     "vite-node": "^1.6.0",
     "@vitejs/plugin-react": "^4.3.1",
-    "vite-tsconfig-paths": "^4.3.2"
+    "vite-tsconfig-paths": "^4.3.2",
+    "@playwright/test": "^1.48.0"
   }
 }
 

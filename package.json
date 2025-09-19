@@ -14,7 +14,7 @@
     "typecheck": "pnpm --recursive typecheck",
     "lint": "echo 'lint to be configured'",
     "format": "echo 'format to be configured'",
-    "test": "echo 'tests to be added' && exit 0",
+    "test": "pnpm --filter @rainvibe/desktop e2e",
     "clean": "git clean -xfd -e rain_vibe_logo.png -e README.md",
     "package": "pnpm --filter @rainvibe/desktop package",
     "report": "node scripts/feature-report.mjs"
