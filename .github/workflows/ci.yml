@@ -62,4 +62,37 @@ jobs:
           name: playwright-report-${{ matrix.os }}
           path: apps/desktop/playwright-report
 
+  package:
+    needs: build-and-test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest]
+        node: [18]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js ${{ matrix.node }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: 'pnpm'
+      - name: Enable corepack
+        run: corepack enable
+      - name: Prepare pnpm
+        run: corepack prepare pnpm@latest --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build desktop
+        working-directory: apps/desktop
+        run: pnpm build
+      - name: Package desktop
+        working-directory: apps/desktop
+        run: pnpm package
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: rainvibe-${{ matrix.os }}
+          path: apps/desktop/release
+
 

@@ -22,6 +22,7 @@ import ShortcutsModal from './components/ShortcutsModal';
 import KeybindingsModal from './components/KeybindingsModal';
 import UnifiedDiffModal from './components/UnifiedDiffModal';
 import UpdateBanner from './components/UpdateBanner';
+import ProfilerOverlay from './components/ProfilerOverlay';
 
 const TopBar: React.FC<{ modes: string[]; version?: string; onChange: (m: string[]) => void; onOpenBoard: () => void; onToggleAssistant: () => void; }>
   = ({ modes, version, onChange, onOpenBoard, onToggleAssistant }) => {
@@ -1018,6 +1019,7 @@ const App: React.FC = () => {
         onClose={() => setShowDiff(false)}
       />
       <UnifiedDiffModal open={unifiedOpen} title={unifiedTitle} diffText={unifiedText} onClose={() => setUnifiedOpen(false)} />
+      {(prefs as any).enableProfiling && <ProfilerOverlay />}
     </div>
   );
 };
