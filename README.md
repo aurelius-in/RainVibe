@@ -99,6 +99,8 @@ RainVibe supports modular modes. Teams can enable one or many. **Basic Mode is e
 
 ## Quick start
 
+[![CI](https://github.com/aurelius-in/RainVibe/actions/workflows/ci.yml/badge.svg)](https://github.com/aurelius-in/RainVibe/actions/workflows/ci.yml)
+
 > The repository structure below is a suggested layout. Names and tools are flexible.
 
 ```
@@ -133,6 +135,21 @@ pnpm -C apps/desktop dev
 
 The desktop app opens with a dark theme and Monaco. Use **Ctrl+I** or **Cmd+I** to toggle the AI panel.
 
+### CI/CD & E2E tests
+
+- GitHub Actions workflow runs on `develop` across Windows, macOS, and Linux.
+- Steps: install, build, unit tests (Vitest), Playwright E2E; artifacts include the HTML Playwright report.
+- Local commands:
+
+```bash
+# Unit tests
+pnpm -C apps/desktop test
+
+# E2E tests (requires browsers)
+pnpm -C apps/desktop exec playwright install
+pnpm -C apps/desktop e2e
+```
+
 ---
 
 ## Configuration
@@ -164,6 +181,15 @@ How to enable
 - In Preferences → Commit & Push Policies, set:
   - Commit policy: per feature, after N changes (1/3/5/10), or every T minutes (15/30/60)
   - Push policy: after N commits (3/5/10) or every T minutes (15/30/60), or manual
+
+Commit/push cadence options (choose one):
+
+- Per feature (manual gate)
+- After N features: 1, 5, 10, 20
+- After N changes: 1, 3, 5, 10
+- After N commits: 3, 5, 10
+- Time-based: every 15/30/60 minutes
+- Never auto-push (manual only)
 
 Recommended defaults
 - Commit after ~3 changes or at the end of a small feature
@@ -221,6 +247,15 @@ deny[msg] {
   msg := "Disallow string-built SQL. Use params"
 }
 ```
+
+- Auto‑update & Packaging
+
+RainVibe ships as a desktop app. Packaging uses Electron tooling with code signing and (optionally) notarization. Auto‑update checks can be wired to your release feed.
+
+- Windows: sign installer with your code‑signing certificate
+- macOS: sign and notarize the app (Developer ID)
+- Update feed: point `.rainvibe/latest.json` (or your endpoint) to advertise the latest version
+- The app can surface an “update available” indicator and open the release page
 
 ---
 

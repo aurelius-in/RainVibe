@@ -58,8 +58,10 @@ declare global {
       policyCheckFiles?: (files: string[]) => { file: string; line: number; message: string }[];
       policyCheckChanged?: () => { file: string; line: number; message: string }[];
       detectConflicts?: () => { file: string; lines: number }[];
+      resolveConflict?: (relPath: string, strategy: 'ours' | 'theirs') => boolean;
       readPackageVersion?: () => string | null;
       checkUpdateLocal?: () => { current: string | null; latest: string | null; updateAvailable: boolean };
+      openExternalUrl?: (url: string) => boolean;
       runPtyStart?: (cmd: string, cwdRel?: string) => string | null;
       runPtyInput?: (id: string, text: string) => boolean;
       runPtyPoll?: (id: string) => string;

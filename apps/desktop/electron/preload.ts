@@ -581,6 +581,57 @@ contextBridge.exposeInMainWorld('rainvibe', {
     } catch { return []; }
   }
   ,
+  resolveConflict(relPath: string, strategy: 'ours' | 'theirs'): boolean {
+    try {
+      const root = repoRoot();
+      const abs = path.join(root, relPath);
+      if (!fs.existsSync(abs) || fs.statSync(abs).isDirectory()) return false;
+      const data = fs.readFileSync(abs, 'utf8');
+      const lines = data.split(/\r?\n/);
+      const out: string[] = [];
+      let inBlock = false;
+      let collecting: 'ours' | 'theirs' | null = null;
+      let ours: string[] = [];
+      let theirs: string[] = [];
+      for (let i = 0; i < lines.length; i++) {
+        const ln = lines[i];
+        if (ln.startsWith('<<<<<<<')) {
+          inBlock = true;
+          collecting = 'ours';
+          ours = [];
+          theirs = [];
+          continue;
+        }
+        if (inBlock && ln.startsWith('=======')) {
+          collecting = 'theirs';
+          continue;
+        }
+        if (inBlock && ln.startsWith('>>>>>>>')) {
+          // end block
+          const chosen = strategy === 'ours' ? ours : theirs;
+          out.push(...chosen);
+          inBlock = false;
+          collecting = null;
+          ours = [];
+          theirs = [];
+          continue;
+        }
+        if (inBlock) {
+          if (collecting === 'ours') ours.push(ln);
+          else if (collecting === 'theirs') theirs.push(ln);
+        } else {
+          out.push(ln);
+        }
+      }
+      const next = out.join('\n');
+      if (next !== data) {
+        fs.writeFileSync(abs, next, 'utf8');
+        return true;
+      }
+      return false;
+    } catch { return false; }
+  }
+  ,
   renameSymbol(oldName: string, newName: string): number {
     try {
       const root = repoRoot();
@@ -633,6 +684,13 @@ contextBridge.exposeInMainWorld('rainvibe', {
       const update = b[0] > a[0] || (b[0] === a[0] && (b[1] > a[1] || (b[1] === a[1] && b[2] > a[2])));
       return { current, latest, updateAvailable: !!latest && update };
     } catch { return { current: null, latest: null, updateAvailable: false }; }
+  }
+  ,
+  openExternalUrl(url: string): boolean {
+    try {
+      shell.openExternal(url);
+      return true;
+    } catch { return false; }
   }
   ,
   formatWithPrettier(text: string, filename?: string): string | null {
