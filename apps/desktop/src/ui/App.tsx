@@ -436,6 +436,16 @@ const App: React.FC = () => {
         window.dispatchEvent(new CustomEvent('rainvibe:workspace:refresh'));
       } catch {}
     }});
+    registry.register({ id: 'ai-file-edit', title: 'AI: Edit Entire File…', run: async () => {
+      try {
+        const instruction = prompt('Edit instruction for entire file:');
+        if (!instruction) return;
+        const source = active?.content || '';
+        const promptMsg = `You are an expert developer. Rewrite the following file according to the instruction. Return only the full edited file content.\nInstruction: ${instruction}\n\nFILE START\n${source}\nFILE END`;
+        const reply = await chat([{ role: 'user', content: promptMsg } as any]);
+        if (reply && active?.id) update(active.id, reply);
+      } catch {}
+    }});
     registry.register({ id: 'open-about', title: 'Open About', run: () => setAboutOpen(true) });
     registry.register({ id: 'check-updates', title: 'Check for Updates (local)', run: () => {
       try {

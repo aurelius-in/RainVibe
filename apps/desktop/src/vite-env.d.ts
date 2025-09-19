@@ -46,6 +46,8 @@ declare global {
       sha256Hex?: (input: string) => string;
       gitMerge?: (branch: string) => boolean;
       gitRebase?: (onto: string) => boolean;
+      gitRebaseContinue?: () => boolean;
+      gitRebaseAbort?: () => boolean;
       gitPush?: (remote?: string, branch?: string) => boolean;
       buildIndex?: () => number;
       searchIndex?: (term: string) => { path: string; line: number; preview: string }[];

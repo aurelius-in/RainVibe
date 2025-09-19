@@ -704,6 +704,14 @@ contextBridge.exposeInMainWorld('rainvibe', {
     } catch { return false; }
   }
   ,
+  gitRebaseContinue(): boolean {
+    try { const root = repoRoot(); execSync('git rebase --continue', { cwd: root, stdio: 'ignore' }); return true; } catch { return false; }
+  }
+  ,
+  gitRebaseAbort(): boolean {
+    try { const root = repoRoot(); execSync('git rebase --abort', { cwd: root, stdio: 'ignore' }); return true; } catch { return false; }
+  }
+  ,
   gitPush(remote: string = 'origin', branch: string = 'develop'): boolean {
     try {
       const root = repoRoot();

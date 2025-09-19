@@ -184,6 +184,16 @@ const PreferencesModal: React.FC<Props> = ({ open, onClose }) => {
             </label>
           </div>
         </div>
+        <div className="mt-3">
+          <div className="opacity-70 text-xs mb-1">Commit Template</div>
+          <input
+            className="w-full px-2 py-1 bg-black text-white border border-white/15 rounded text-xs"
+            placeholder="{scope}: {summary}\n\n{details}"
+            value={(local as any).commitTemplate || ''}
+            onChange={(e) => setLocal({ ...local, commitTemplate: e.target.value } as any)}
+          />
+          <div className="opacity-60 text-[10px] mt-1">Placeholders: {`{scope}`} {`{summary}`} {`{details}`}</div>
+        </div>
       </div>
     </div>
   );

@@ -166,6 +166,9 @@ const AssistantPanel: React.FC<Props> = ({ open, audit, diagnostics, onOpenPath,
               <button onClick={() => { const b = prompt('Switch to branch:'); if (b) (window as any).rainvibe?.gitCheckout?.(b, false); }} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10">Switch Branch…</button>
               <button onClick={() => (window as any).rainvibe?.gitInit?.()} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10">Init Repo</button>
               <button onClick={() => { try { const c = (window as any).rainvibe?.detectConflicts?.() || []; alert(c.length ? c.map((x:any)=>`${x.file} (${x.lines})`).join('\n') : 'No conflicts'); } catch {} }} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10">Detect Conflicts</button>
+              <button onClick={() => { const onto = prompt('Rebase onto:'); if (onto) (window as any).rainvibe?.gitRebase?.(onto); }} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10">Rebase…</button>
+              <button onClick={() => (window as any).rainvibe?.gitRebaseContinue?.()} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10">Rebase Continue</button>
+              <button onClick={() => (window as any).rainvibe?.gitRebaseAbort?.()} className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10">Rebase Abort</button>
             </div>
             <div className="space-y-1">
               {(() => {

@@ -54,6 +54,39 @@ export function useAiClient() {
         yield full;
       })();
     },
+    callTool: async (name: string, args: string[]): Promise<string> => {
+      try {
+        const rv: any = (window as any).rainvibe;
+        if (!rv) return 'No tool bridge available';
+        if (name === 'search') {
+          const term = args.join(' ');
+          const hits = rv.searchIndex?.(term) || rv.searchText?.(term) || [];
+          return JSON.stringify(hits, null, 2);
+        }
+        if (name === 'symbols') {
+          const term = args.join(' ');
+          const hits = rv.searchSymbols?.(term) || [];
+          return JSON.stringify(hits, null, 2);
+        }
+        if (name === 'policy') {
+          const list = rv.policyCheckChanged?.() || [];
+          return JSON.stringify(list, null, 2);
+        }
+        if (name === 'rename') {
+          const [oldName, newName] = args;
+          if (!oldName || !newName) return 'Usage: /tool rename <old> <new>';
+          const n = rv.renameSymbol?.(oldName, newName) || 0;
+          return `Renamed in ${n} files`;
+        }
+        if (name === 'gitlog') {
+          const list = rv.gitLog?.(20) || [];
+          return JSON.stringify(list, null, 2);
+        }
+        return `Unknown tool: ${name}`;
+      } catch (e: any) {
+        return `Tool error: ${e?.message || String(e)}`;
+      }
+    }
   };
 }
 
