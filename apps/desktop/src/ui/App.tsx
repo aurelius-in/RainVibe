@@ -15,10 +15,12 @@ import { useAuditLog } from './state/useAuditLog';
 import { exportHTML, exportJSONL, exportPDF } from '@rainvibe/audit/src/exports';
 import { registry } from './commands/registry';
 import { usePreferences } from './state/usePreferences';
+import { useAiClient } from './state/useAiClient';
 import FirstRunModal, { shouldShowFirstRun } from './components/FirstRunModal';
 import DiffPatchPreview from './components/DiffPatchPreview';
 import ShortcutsModal from './components/ShortcutsModal';
 import KeybindingsModal from './components/KeybindingsModal';
+import UnifiedDiffModal from './components/UnifiedDiffModal';
 
 const TopBar: React.FC<{ modes: string[]; version?: string; onChange: (m: string[]) => void; onOpenBoard: () => void; onToggleAssistant: () => void; }>
   = ({ modes, version, onChange, onOpenBoard, onToggleAssistant }) => {
@@ -82,9 +84,13 @@ const App: React.FC = () => {
   const [showDiff, setShowDiff] = React.useState(false);
   const [diffOriginal, setDiffOriginal] = React.useState('');
   const [diffModified, setDiffModified] = React.useState('');
+  const [unifiedOpen, setUnifiedOpen] = React.useState(false);
+  const [unifiedTitle, setUnifiedTitle] = React.useState('');
+  const [unifiedText, setUnifiedText] = React.useState('');
   const [shortcutsOpen, setShortcutsOpen] = React.useState(false);
   const [keysOpen, setKeysOpen] = React.useState(false);
   const [caret, setCaret] = React.useState<{ line: number; column: number }>({ line: 1, column: 1 });
+  const { chat } = useAiClient();
   const [diagnostics, setDiagnostics] = React.useState<Array<{ message: string; severity: 'error' | 'warning' | 'info'; startLine: number; startColumn: number; endLine: number; endColumn: number }>>([]);
   const diagCounts = React.useMemo(() => {
     return {
@@ -135,12 +141,60 @@ const App: React.FC = () => {
       if (name === 'workspace' || name === 'search' || name === 'outline') setLeftRail(name as any);
     };
     window.addEventListener('rainvibe:left', leftHandler as any);
-    return () => { window.removeEventListener('open-path', openPathHandler as any); window.removeEventListener('rainvibe:diff-file', diffHandler as any); window.removeEventListener('rainvibe:diff-file-head', diffHeadHandler as any); window.removeEventListener('rainvibe:left', leftHandler as any); };
+    const hunksHandler = (e: any) => {
+      const p = String(e?.detail || '');
+      if (!p) return;
+      try {
+        const txt = (window as any).rainvibe?.gitDiff?.(p, 'HEAD') || '';
+        setUnifiedTitle(`Diff (HEAD): ${p}`);
+        setUnifiedText(txt);
+        setUnifiedOpen(true);
+      } catch {}
+    };
+    window.addEventListener('rainvibe:diff-hunks', hunksHandler as any);
+    const quickFix = () => {
+      try {
+        if (!active?.id) return;
+        let src = active?.content || '';
+        src = src.split('\n').map(l => l.replace(/\s+$/,'' )).join('\n');
+        src = src.replace(/\bvar\b/g, 'let');
+        src = src.replace(/([^=])==([^=])/g, '$1===$2').replace(/!=([^=])/g, '!==$1');
+        update(active.id, src);
+      } catch {}
+    };
+    window.addEventListener('rainvibe:quick-fix', quickFix as any);
+    return () => { window.removeEventListener('open-path', openPathHandler as any); window.removeEventListener('rainvibe:diff-file', diffHandler as any); window.removeEventListener('rainvibe:diff-file-head', diffHeadHandler as any); window.removeEventListener('rainvibe:left', leftHandler as any); window.removeEventListener('rainvibe:diff-hunks', hunksHandler as any); window.removeEventListener('rainvibe:quick-fix', quickFix as any); };
   }, [open, buffers]);
 
   React.useEffect(() => {
     try { document.title = `RainVibe — ${active?.path ?? ''}`; } catch {}
+    try { (window as any).activePath = active?.path || ''; } catch {}
   }, [active?.path]);
+
+  // Non-stop RainVibe mode: autosave/commit/push loop
+  React.useEffect(() => {
+    if (!(activeModes as any)?.includes?.('RainVibe')) return;
+    const id = setInterval(() => {
+      try {
+        // Save all open buffers to disk
+        buffers.forEach((b) => {
+          if (b.path) {
+            try { (window as any).rainvibe?.writeTextFile?.(b.path, b.content); } catch {}
+          }
+        });
+        // Commit and push if there are changes
+        const changes = (window as any).rainvibe?.gitStatus?.() || [];
+        if (changes.length > 0) {
+          try { (window as any).rainvibe?.gitAdd?.(); } catch {}
+          const msg = `RainVibe: checkpoint (${changes.length} files)`;
+          try { (window as any).rainvibe?.gitCommit?.(msg); } catch {}
+          try { (window as any).rainvibe?.gitPush?.('origin', 'develop'); } catch {}
+        }
+        try { (window as any).rainvibe?.appendAudit?.(JSON.stringify({ kind: 'non_stop_tick', ts: Date.now(), changed: changes.length })+'\n'); } catch {}
+      } catch {}
+    }, 45000);
+    return () => clearInterval(id);
+  }, [activeModes, buffers]);
   React.useEffect(() => {
     try { localStorage.setItem('rainvibe.ui.assistantOpen', String(assistantOpen)); } catch {}
   }, [assistantOpen]);
@@ -233,6 +287,32 @@ const App: React.FC = () => {
     }});
     registry.register({ id: 'open-preferences', title: 'Open Preferences', run: () => setPrefsOpen(true) });
     registry.register({ id: 'open-keybindings', title: 'Open Keybindings & Aliases', run: () => setKeysOpen(true) });
+    registry.register({ id: 'insert-last-reply', title: 'Insert Last AI Reply', run: () => {
+      try {
+        const txt = localStorage.getItem('rainvibe.chat.last') || '';
+        if (txt && active?.id) update(active.id, (active.content || '') + '\n' + txt);
+      } catch {}
+    }});
+    registry.register({ id: 'send-selection-to-chat', title: 'Send Selection to Chat', run: () => {
+      try { const sel = window.getSelection?.()?.toString?.() || ''; if (sel) { localStorage.setItem('rainvibe.chat.input', sel); window.dispatchEvent(new CustomEvent('rainvibe:assistantTab', { detail: 'Chat' })); } } catch {}
+    }});
+    registry.register({ id: 'apply-prompt', title: 'Insert Org Prompt…', run: () => {
+      const name = prompt('Prompt name (from .rainvibe/prompts/<name>.md):');
+      if (!name) return;
+      const text = (window as any).rainvibe?.loadPrompt?.(name) || '';
+      if (text && active?.id) update(active.id, (active.content || '') + '\n' + text);
+    }});
+    registry.register({ id: 'ai-inline-edit', title: 'AI: Inline Edit Selection…', run: async () => {
+      try {
+        const sel = window.getSelection?.()?.toString?.() || '';
+        if (!sel) { alert('Select code to edit'); return; }
+        const instruction = prompt('Edit instruction (e.g., convert to async, add error handling):');
+        if (!instruction) return;
+        const promptMsg = `Edit the following code according to the instruction. Return only the edited code.\nInstruction: ${instruction}\nCode:\n${sel}`;
+        const reply = await chat([{ role: 'user', content: promptMsg } as any]);
+        if (reply && active?.id) update(active.id, (active.content || '').replace(sel, reply));
+      } catch {}
+    }});
     registry.register({ id: 'open-about', title: 'Open About', run: () => setAboutOpen(true) });
     registry.register({ id: 'policy-simulate', title: 'Simulate Policy Check', run: () => {
       // Stub: just create an alert to show where results would surface
@@ -283,6 +363,8 @@ const App: React.FC = () => {
     registry.register({ id: 'git-commit', title: 'Git: Commit…', run: () => { const m = prompt('Commit message:'); if (!m) return; try { (window as any).rainvibe?.gitCommit?.(m); } catch {} } });
     registry.register({ id: 'git-branch-create', title: 'Git: Create Branch…', run: () => { const b = prompt('New branch name:'); if (!b) return; try { (window as any).rainvibe?.gitCheckout?.(b, true); setBranch((window as any).rainvibe?.gitBranch?.() || null); } catch {} } });
     registry.register({ id: 'git-branch-switch', title: 'Git: Switch Branch…', run: () => { const b = prompt('Switch to branch:'); if (!b) return; try { (window as any).rainvibe?.gitCheckout?.(b, false); setBranch((window as any).rainvibe?.gitBranch?.() || null); } catch {} } });
+    registry.register({ id: 'git-merge', title: 'Git: Merge…', run: () => { const b = prompt('Merge branch into current:'); if (!b) return; try { (window as any).rainvibe?.gitMerge?.(b); } catch {} } });
+    registry.register({ id: 'git-rebase', title: 'Git: Rebase…', run: () => { const b = prompt('Rebase current onto:'); if (!b) return; try { (window as any).rainvibe?.gitRebase?.(b); } catch {} } });
     registry.register({ id: 'git-stash', title: 'Git: Stash…', run: () => { const m = prompt('Stash message (optional):') || undefined; try { (window as any).rainvibe?.gitStash?.(m); } catch {} } });
     registry.register({ id: 'git-restore-current', title: 'Git: Restore Current File', run: () => { if (active?.path) { try { (window as any).rainvibe?.gitRestore?.(active.path); update(active.id, (window as any).rainvibe?.readTextFile?.(active.path) || ''); } catch {} } } });
     registry.register({ id: 'new-buffer', title: 'New Buffer', run: () => newBuffer() });
@@ -373,6 +455,15 @@ const App: React.FC = () => {
     registry.register({ id: 'reveal-current-in-os', title: 'Reveal Current File in OS', run: () => { if (active?.path) { try { (window as any).rainvibe?.revealInOS?.(active.path); } catch {} } }});
     registry.register({ id: 'switch-provider-local', title: 'Switch Provider: Local', run: () => { try { save({ ...prefs, provider: 'local' }); } catch {} } });
     registry.register({ id: 'switch-provider-chatgpt', title: 'Switch Provider: ChatGPT', run: () => { try { save({ ...prefs, provider: 'chatgpt' }); } catch {} } });
+    registry.register({ id: 'switch-profile', title: 'Switch Preferences Profile…', run: () => {
+      const keys = Object.keys((prefs as any).profiles || {});
+      if (!keys.length) { alert('No profiles defined'); return; }
+      const name = prompt('Profile name:\n' + keys.join('\n'));
+      if (!name) return;
+      const p = ((prefs as any).profiles || {})[name];
+      if (!p) { alert('Profile not found'); return; }
+      try { save({ ...prefs, ...p, activeProfile: name } as any); } catch {}
+    }});
     registry.register({ id: 'replace-in-file', title: 'Replace in File…', run: () => trigger('editor.action.startFindReplaceAction') });
     registry.register({ id: 'toggle-line-comment', title: 'Toggle Line Comment', run: () => trigger('editor.action.commentLine') });
     registry.register({ id: 'toggle-block-comment', title: 'Toggle Block Comment', run: () => trigger('editor.action.blockComment') });
@@ -776,6 +867,7 @@ const App: React.FC = () => {
         onApply={() => { try { if (active?.id) update(active.id, diffModified); } catch {} setShowDiff(false); }}
         onClose={() => setShowDiff(false)}
       />
+      <UnifiedDiffModal open={unifiedOpen} title={unifiedTitle} diffText={unifiedText} onClose={() => setUnifiedOpen(false)} />
     </div>
   );
 };

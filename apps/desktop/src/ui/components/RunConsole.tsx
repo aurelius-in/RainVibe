@@ -11,10 +11,21 @@ const RunConsole: React.FC = () => {
   const [hIdx, setHIdx] = React.useState<number>(-1);
   const onRun = async () => {
     setBusy(true);
-    const res = await simulateRun(cmd);
-    setOut((prev) => prev + (prev ? '\n' : '') + res.output);
+    let output = '';
+    try {
+      const res = (window as any).rainvibe?.runShell?.(cmd);
+      if (res) output = res.output;
+      else {
+        const sim = await simulateRun(cmd);
+        output = sim.output;
+      }
+    } catch {
+      const sim = await simulateRun(cmd);
+      output = sim.output;
+    }
+    setOut((prev) => prev + (prev ? '\n' : '') + output);
     setBusy(false);
-    try { (window as any).rainvibe?.appendAudit?.(JSON.stringify({ kind:'run', cmd, ts: Date.now(), bytes: res.output?.length || 0 })+'\n'); } catch {}
+    try { (window as any).rainvibe?.appendAudit?.(JSON.stringify({ kind:'run', cmd, ts: Date.now(), bytes: output?.length || 0 })+'\n'); } catch {}
     setHistory((prev) => [cmd, ...prev].slice(0, 50));
     setHIdx(-1);
   };

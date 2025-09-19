@@ -1,13 +1,13 @@
 import React from 'react';
 
-type Mode = 'Basic' | 'Coach' | 'Bug Fixer' | 'Policy-Safe' | 'Compliance/Audit';
+type Mode = 'Basic' | 'Coach' | 'Bug Fixer' | 'Policy-Safe' | 'Compliance/Audit' | 'RainVibe';
 
 interface Props {
   active: Mode[];
   onChange: (modes: Mode[]) => void;
 }
 
-const all: Mode[] = ['Basic', 'Coach', 'Bug Fixer', 'Policy-Safe', 'Compliance/Audit'];
+const all: Mode[] = ['Basic', 'Coach', 'Bug Fixer', 'Policy-Safe', 'Compliance/Audit', 'RainVibe'];
 
 const ModeToggle: React.FC<Props> = ({ active, onChange }) => {
   const toggle = (m: Mode) => {

@@ -13,6 +13,40 @@ const PreferencesModal: React.FC<Props> = ({ open, onClose }) => {
       <div className="w-[560px] bg-black border border-white/15 rounded p-4 text-sm">
         <div className="text-white font-semibold mb-3">Preferences</div>
         <div className="space-y-3">
+          <div className="border border-white/10 rounded p-2">
+            <div className="opacity-70 text-xs mb-1">Profiles</div>
+            <div className="flex items-center gap-2 mb-2">
+              <select className="bg-black border border-white/15 rounded px-2 py-1" value={(local as any).activeProfile || ''} onChange={(e) => setLocal({ ...local, activeProfile: e.target.value } as any)}>
+                <option value="">(none)</option>
+                {Object.keys((local as any).profiles || {}).map(k => <option key={k} value={k}>{k}</option>)}
+              </select>
+              <button className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10 text-xs" onClick={() => {
+                const name = prompt('New profile name');
+                if (!name) return;
+                const profiles = { ...((local as any).profiles || {}), [name]: { provider: local.provider, model: local.model, baseUrl: (local as any).baseUrl } };
+                setLocal({ ...local, profiles, activeProfile: name } as any);
+              }}>New</button>
+              <button className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10 text-xs" onClick={() => {
+                const cur = (local as any).activeProfile || '';
+                if (!cur) return;
+                const profiles = { ...((local as any).profiles || {}) };
+                delete profiles[cur];
+                setLocal({ ...local, profiles, activeProfile: '' } as any);
+              }}>Delete</button>
+              <button className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10 text-xs" onClick={() => {
+                const cur = (local as any).activeProfile || '';
+                if (!cur) return;
+                const profiles = { ...((local as any).profiles || {}), [cur]: { provider: local.provider, model: local.model, baseUrl: (local as any).baseUrl } };
+                setLocal({ ...local, profiles } as any);
+              }}>Save Profile</button>
+              <button className="px-2 py-0.5 border border-white/15 rounded hover:bg-white/10 text-xs" onClick={() => {
+                const cur = (local as any).activeProfile || '';
+                if (!cur) return;
+                const p = ((local as any).profiles || {})[cur] || {};
+                setLocal({ ...local, ...p } as any);
+              }}>Load Profile</button>
+            </div>
+          </div>
           <label className="block">Provider
             <select className="mt-1 bg-black border border-white/15 rounded px-2 py-1 w-full" value={local.provider} onChange={(e) => setLocal({ ...local, provider: e.target.value as any })}>
               <option value="chatgpt">ChatGPT</option>
@@ -24,6 +58,14 @@ const PreferencesModal: React.FC<Props> = ({ open, onClose }) => {
           <label className="block">Model
             <input className="mt-1 bg-black border border-white/15 rounded px-2 py-1 w-full" value={local.model} onChange={(e) => setLocal({ ...local, model: e.target.value })} />
           </label>
+          <div className="grid grid-cols-2 gap-2">
+            <label className="block">Rate limit/min
+              <input type="number" min={0} max={10000} className="mt-1 bg-black border border-white/15 rounded px-2 py-1 w-full" value={(local as any).rateLimitPerMin ?? 60} onChange={(e) => setLocal({ ...local, rateLimitPerMin: Number(e.target.value) || 0 } as any)} />
+            </label>
+            <label className="block">Proxy URL
+              <input className="mt-1 bg-black border border-white/15 rounded px-2 py-1 w-full" value={(local as any).proxyUrl || ''} onChange={(e) => setLocal({ ...local, proxyUrl: e.target.value } as any)} />
+            </label>
+          </div>
           <label className="block">API Key
             <input type="password" className="mt-1 bg-black border border-white/15 rounded px-2 py-1 w-full" value={(local as any).apiKey || ''} onChange={(e) => setLocal({ ...local, apiKey: e.target.value } as any)} />
           </label>

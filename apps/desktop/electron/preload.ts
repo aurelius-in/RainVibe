@@ -2,6 +2,7 @@ import { contextBridge, shell } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
 import { execSync } from 'node:child_process';
+import crypto from 'node:crypto';
 
 function safeReadJson(filePath: string): any | null {
   try {
@@ -38,6 +39,14 @@ contextBridge.exposeInMainWorld('rainvibe', {
     const p = path.join(repoRoot(), '.rainvibe', 'org.json');
     return safeReadJson(p);
   },
+  loadPrompt(name: string): string | null {
+    try {
+      const p = path.join(repoRoot(), '.rainvibe', 'prompts', `${name}.md`);
+      if (!fs.existsSync(p)) return null;
+      return fs.readFileSync(p, 'utf8');
+    } catch { return null; }
+  }
+  ,
   policyFiles(): string[] {
     return listPolicyFiles();
   },
@@ -250,12 +259,29 @@ contextBridge.exposeInMainWorld('rainvibe', {
     } catch { return []; }
   }
   ,
+  gitDiff(relPath: string, refA: string = 'HEAD', refB?: string): string | null {
+    try {
+      const root = repoRoot();
+      const spec = refB ? `${refA}..${refB}` : `${refA}`;
+      const out = execSync(`git --no-pager diff ${spec} -- "${relPath}"`, { cwd: root, stdio: ['ignore', 'pipe', 'ignore'] }).toString('utf8');
+      return out;
+    } catch { return null; }
+  }
+  ,
   gitBlame(relPath: string, maxLines: number = 200): string | null {
     try {
       const root = repoRoot();
       const out = execSync(`git blame -w --line-porcelain -- "${relPath}"`, { cwd: root, stdio: ['ignore', 'pipe', 'ignore'] }).toString('utf8');
       const lines = out.split(/\r?\n/).slice(0, maxLines);
       return lines.join('\n');
+    } catch { return null; }
+  }
+  ,
+  gitShowCommit(hash: string): string | null {
+    try {
+      const root = repoRoot();
+      const out = execSync(`git --no-pager show --stat --name-status ${hash}`, { cwd: root, stdio: ['ignore', 'pipe', 'ignore'] }).toString('utf8');
+      return out;
     } catch { return null; }
   }
   ,
@@ -321,6 +347,65 @@ contextBridge.exposeInMainWorld('rainvibe', {
     } catch { return []; }
   }
   ,
+  installKit(name: string, readme?: string): boolean {
+    try {
+      const dir = path.join(repoRoot(), '.rainvibe', 'kits', name);
+      fs.mkdirSync(dir, { recursive: true });
+      if (readme) fs.writeFileSync(path.join(dir, 'README.md'), readme, 'utf8');
+      return true;
+    } catch { return false; }
+  }
+  ,
+  removeKit(name: string): boolean {
+    try {
+      const dir = path.join(repoRoot(), '.rainvibe', 'kits', name);
+      if (fs.existsSync(dir)) fs.rmSync(dir, { recursive: true, force: true });
+      return true;
+    } catch { return false; }
+  }
+  ,
+  formatWithPrettier(text: string, filename?: string): string | null {
+    try {
+      let prettier: any = null;
+      try { prettier = require('prettier'); } catch { prettier = null; }
+      if (!prettier) return null;
+      const parser = filename?.endsWith('.ts') || filename?.endsWith('.tsx') ? 'typescript' : filename?.endsWith('.js') || filename?.endsWith('.jsx') ? 'babel' : filename?.endsWith('.json') ? 'json' : filename?.endsWith('.css') ? 'css' : filename?.endsWith('.md') ? 'markdown' : undefined;
+      const options: any = parser ? { parser } : {};
+      return prettier.format(text, options);
+    } catch { return null; }
+  }
+  ,
+  lintWithEslint(text: string, filename: string = 'file.ts'): { message: string; severity: 'error' | 'warning' | 'info'; line: number; column: number }[] {
+    try {
+      let ESLint: any = null;
+      try { ESLint = require('eslint').ESLint; } catch { ESLint = null; }
+      if (!ESLint) throw new Error('eslint not available');
+      const eslint = new ESLint({ useEslintrc: true, cwd: repoRoot() });
+      const results = eslint.lintTextSync ? eslint.lintTextSync(text, { filePath: filename }) : [];
+      const out: { message: string; severity: 'error' | 'warning' | 'info'; line: number; column: number }[] = [];
+      for (const r of results) {
+        for (const m of r.messages || []) {
+          out.push({ message: m.message, severity: m.severity === 2 ? 'error' : m.severity === 1 ? 'warning' : 'info', line: m.line || 1, column: m.column || 1 });
+        }
+      }
+      return out;
+    } catch {
+      // Fallback simple heuristics
+      const lines = text.split(/\r?\n/);
+      const out: { message: string; severity: 'error' | 'warning' | 'info'; line: number; column: number }[] = [];
+      lines.forEach((ln, i) => {
+        if (/\bvar\b/.test(ln)) out.push({ message: 'Avoid var, use let/const', severity: 'warning', line: i+1, column: Math.max(1, ln.indexOf('var')+1) });
+        if (/[^=]=[^=]/.test(ln)) out.push({ message: 'Use strict equality (===)', severity: 'info', line: i+1, column: 1 });
+        if (/\s+$/.test(ln)) out.push({ message: 'Trailing whitespace', severity: 'info', line: i+1, column: ln.length });
+      });
+      return out;
+    }
+  }
+  ,
+  sha256Hex(input: string): string {
+    try { return crypto.createHash('sha256').update(input).digest('hex'); } catch { return ''; }
+  }
+  ,
   renamePath(fromRel: string, toRel: string): boolean {
     try {
       const from = path.resolve(repoRoot(), fromRel);
@@ -330,6 +415,47 @@ contextBridge.exposeInMainWorld('rainvibe', {
       fs.renameSync(from, to);
       return true;
     } catch { return false; }
+  }
+  ,
+  gitMerge(branch: string): boolean {
+    try {
+      const root = repoRoot();
+      execSync(`git merge --no-ff ${branch}`, { cwd: root, stdio: 'ignore' });
+      return true;
+    } catch { return false; }
+  }
+  ,
+  gitRebase(onto: string): boolean {
+    try {
+      const root = repoRoot();
+      execSync(`git rebase ${onto}`, { cwd: root, stdio: 'ignore' });
+      return true;
+    } catch { return false; }
+  }
+  ,
+  gitPush(remote: string = 'origin', branch: string = 'develop'): boolean {
+    try {
+      const root = repoRoot();
+      execSync(`git push ${remote} ${branch}`, { cwd: root, stdio: 'ignore' });
+      return true;
+    } catch { return false; }
+  }
+  ,
+  runShell(cmd: string, cwdRel?: string): { code: number; output: string } {
+    try {
+      const root = repoRoot();
+      const cwd = cwdRel ? path.resolve(root, cwdRel) : root;
+      const out = execSync(cmd, { cwd, stdio: ['ignore', 'pipe', 'pipe'] }).toString('utf8');
+      return { code: 0, output: out };
+    } catch (e: any) {
+      try {
+        const output = (e?.stdout?.toString?.('utf8') || '') + (e?.stderr?.toString?.('utf8') || e?.message || '');
+        const code = typeof e?.status === 'number' ? e.status : 1;
+        return { code, output };
+      } catch {
+        return { code: 1, output: 'Failed to execute command' };
+      }
+    }
   }
   ,
   deletePath(relPath: string): boolean {
