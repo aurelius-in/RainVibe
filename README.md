@@ -257,6 +257,19 @@ RainVibe ships as a desktop app. Packaging uses Electron tooling with code signi
 - Update feed: point `.rainvibe/latest.json` (or your endpoint) to advertise the latest version
 - The app can surface an “update available” indicator and open the release page
 
+CI packaging:
+
+- CI builds release artifacts on Windows and macOS and uploads them as workflow artifacts
+- Local packaging:
+
+```bash
+pnpm -C apps/desktop build
+pnpm -C apps/desktop package       # all platforms (host dependent)
+pnpm -C apps/desktop package:win   # Windows installer
+pnpm -C apps/desktop package:mac   # macOS DMG
+pnpm -C apps/desktop package:linux # Linux AppImage
+```
+
 ---
 
 ## Using RainVibe
