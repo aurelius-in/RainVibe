@@ -250,6 +250,15 @@ contextBridge.exposeInMainWorld('rainvibe', {
     } catch { return []; }
   }
   ,
+  gitBlame(relPath: string, maxLines: number = 200): string | null {
+    try {
+      const root = repoRoot();
+      const out = execSync(`git blame -w --line-porcelain -- "${relPath}"`, { cwd: root, stdio: ['ignore', 'pipe', 'ignore'] }).toString('utf8');
+      const lines = out.split(/\r?\n/).slice(0, maxLines);
+      return lines.join('\n');
+    } catch { return null; }
+  }
+  ,
   gitBranch(): string | null {
     try {
       const root = repoRoot();

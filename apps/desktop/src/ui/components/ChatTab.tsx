@@ -8,7 +8,7 @@ interface Message { role: 'user' | 'assistant'; content: string }
 const ChatTab: React.FC = () => {
   const [messages, setMessages] = React.useState<Message[]>([]);
   const [input, setInput] = React.useState('');
-  const { chat } = useAiClient();
+  const { chat, stream } = useAiClient();
   const { prefs } = usePreferences();
   const { active: modes } = useModes();
 
@@ -43,9 +43,25 @@ const ChatTab: React.FC = () => {
       setMessages((m) => [...m, { role: 'assistant', content: slash }]);
       return;
     }
-    const reply = await chat([{ role: 'user', content: trimmed } as any]);
-    const hint = prefs.offlineOnly ? ' (offline)' : '';
-    setMessages((m) => [...m, { role: 'assistant', content: reply + hint }]);
+    try {
+      const gen = stream([{ role: 'user', content: trimmed } as any]);
+      let acc = '';
+      for await (const chunk of gen as any) {
+        acc = chunk;
+        setMessages((m) => {
+          const base = m.filter((x, i) => i !== m.length - 1 || x.role !== 'assistant');
+          return [...base, { role: 'assistant', content: acc } as any];
+        });
+      }
+      if (!acc) {
+        const reply = await chat([{ role: 'user', content: trimmed } as any]);
+        acc = reply;
+        setMessages((m) => [...m, { role: 'assistant', content: acc }]);
+      }
+    } catch {
+      const reply = await chat([{ role: 'user', content: trimmed } as any]);
+      setMessages((m) => [...m, { role: 'assistant', content: reply }]);
+    }
   };
 
   const insertLastReply = () => {

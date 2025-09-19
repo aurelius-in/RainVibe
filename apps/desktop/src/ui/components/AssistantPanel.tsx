@@ -154,6 +154,7 @@ const AssistantPanel: React.FC<Props> = ({ open, audit, diagnostics, onOpenPath,
                           <button onClick={() => (window as any).rainvibe?.gitAdd?.(e.path)} className="px-1 py-0.5 border border-white/15 rounded hover:bg-white/10">Stage</button>
                           <button onClick={() => (window as any).rainvibe?.gitRestore?.(e.path)} className="px-1 py-0.5 border border-white/15 rounded hover:bg-white/10">Restore</button>
                           <button onClick={() => window.dispatchEvent(new CustomEvent('rainvibe:diff-file', { detail: e.path }))} className="px-1 py-0.5 border border-white/15 rounded hover:bg-white/10">Diff</button>
+                          <button onClick={() => { const out = (window as any).rainvibe?.gitBlame?.(e.path, 200); alert(out ? out.slice(0, 2000) : 'No blame'); }} className="px-1 py-0.5 border border-white/15 rounded hover:bg-white/10">Blame</button>
                         </div>
                       </div>
                     </div>

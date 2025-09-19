@@ -43,6 +43,14 @@ export function useAiClient() {
       } catch {}
       return reply;
     },
+    stream: (messages: AiMessage[]) => {
+      const gen = providerRef.current.stream?.(messages);
+      if (gen) return gen;
+      return (async function* fallback() {
+        const full = await providerRef.current.chat(messages);
+        yield full;
+      })();
+    },
   };
 }
 
