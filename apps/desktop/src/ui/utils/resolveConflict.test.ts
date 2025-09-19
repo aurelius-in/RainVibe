@@ -30,6 +30,35 @@ describe('resolveConflictMarkers', () => {
     expect(out).toContain('theirs 2');
     expect(out).not.toContain('ours 1');
   });
+
+  it('no-op on input without markers', () => {
+    const input = 'hello\nworld';
+    const out = resolveConflictMarkers(input, 'ours');
+    expect(out).toBe(input);
+  });
+
+  it('handles multiple conflict blocks', () => {
+    const multi = [
+      'a',
+      '<<<<<<< HEAD',
+      'x1',
+      '=======',
+      'y1',
+      '>>>>>>> br',
+      'b',
+      '<<<<<<< HEAD',
+      'x2',
+      '=======',
+      'y2',
+      '>>>>>>> br',
+      'c',
+    ].join('\n');
+    const out = resolveConflictMarkers(multi, 'theirs');
+    expect(out).toContain('y1');
+    expect(out).toContain('y2');
+    expect(out).not.toContain('x1');
+    expect(out).not.toContain('x2');
+  });
 });
 
 

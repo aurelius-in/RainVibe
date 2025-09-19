@@ -1005,6 +1005,7 @@ const App: React.FC = () => {
         onClose={() => setBoardOpen(false)}
         commands={registry.getAll()}
       />
+      <button aria-label="Open release folder" onClick={() => { try { (window as any).rainvibe?.revealInOS?.('apps/desktop/release'); } catch {} }} className="hidden" />
       <PreferencesModal open={prefsOpen} onClose={() => setPrefsOpen(false)} />
       <AboutModal open={aboutOpen} onClose={() => setAboutOpen(false)} />
       <FirstRunModal open={firstOpen} onClose={() => setFirstOpen(false)} onOpenPreferences={() => setPrefsOpen(true)} />
